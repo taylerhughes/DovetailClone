@@ -1,0 +1,314 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Core hierarchy ─────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  notes       Note[]
+  insights    Insight[]
+  tags        Tag[]
+  fields      Field[]
+  views       View[]
+  teamMembers TeamMember[]
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String   @default("Untitled")
+  content   Json
+  plainText String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attachments    Attachment[]
+  highlights     Highlight[]
+  fieldValues    NoteFieldValue[]
+  tagAssignments NoteTag[]
+
+  @@index([projectId])
+}
+
+enum AttachmentKind {
+  VIDEO
+  AUDIO
+  IMAGE
+  FILE
+}
+
+model Attachment {
+  id           String         @id @default(cuid())
+  noteId       String
+  note         Note           @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  kind         AttachmentKind
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  createdAt    DateTime       @default(now())
+
+  @@index([noteId])
+}
+
+model Highlight {
+  id        String   @id @default(cuid())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  markId    String?
+  wholeNote Boolean  @default(false)
+  quote     String
+  orphaned  Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tagAssignments HighlightTag[]
+  insightLinks   InsightHighlight[]
+
+  @@unique([noteId, markId])
+  @@index([noteId])
+}
+
+model Insight {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String   @default("Untitled insight")
+  content   Json
+  plainText String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  highlightLinks InsightHighlight[]
+  fieldValues    InsightFieldValue[]
+
+  @@index([projectId])
+}
+
+model InsightHighlight {
+  insightId   String
+  insight     Insight   @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  highlightId String
+  highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@id([insightId, highlightId])
+}
+
+// ── Tags ───────────────────────────────────────────────────────
+
+model Tag {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    Tag?    @relation("TagGroup", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Tag[]   @relation("TagGroup")
+  name      String
+  color     String
+
+  noteAssignments      NoteTag[]
+  highlightAssignments HighlightTag[]
+
+  @@unique([projectId, name])
+}
+
+model NoteTag {
+  noteId String
+  note   Note   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+}
+
+model HighlightTag {
+  highlightId String
+  highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+  tagId       String
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([highlightId, tagId])
+}
+
+// ── Fields (custom metadata) ────────────────────────────────────
+
+enum FieldType {
+  TEXT
+  NUMBER
+  SINGLE_SELECT
+  MULTI_SELECT
+  PERSON
+  DATE
+}
+
+enum FieldAppliesTo {
+  NOTE
+  INSIGHT
+  BOTH
+}
+
+model Field {
+  id        String         @id @default(cuid())
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  type      FieldType
+  appliesTo FieldAppliesTo @default(BOTH)
+  order     Int            @default(0)
+
+  options       FieldOption[]
+  noteValues    NoteFieldValue[]
+  insightValues InsightFieldValue[]
+  viewsGroupedBy View[] @relation("GroupByField")
+  viewsSortedBy  View[] @relation("SortField")
+
+  @@unique([projectId, name])
+}
+
+model FieldOption {
+  id      String @id @default(cuid())
+  fieldId String
+  field   Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  label   String
+  color   String
+  order   Int    @default(0)
+
+  noteValueLinks    NoteFieldValueOption[]
+  insightValueLinks InsightFieldValueOption[]
+}
+
+model TeamMember {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  color     String
+
+  noteValues    NoteFieldValue[]
+  insightValues InsightFieldValue[]
+}
+
+model NoteFieldValue {
+  id              String    @id @default(cuid())
+  noteId          String
+  note            Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  fieldId         String
+  field           Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  valueText       String?
+  valueNumber     Float?
+  valueDate       DateTime?
+  teamMemberId    String?
+  teamMember      TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  selectedOptions NoteFieldValueOption[]
+
+  @@unique([noteId, fieldId])
+}
+
+model NoteFieldValueOption {
+  noteFieldValueId String
+  noteFieldValue   NoteFieldValue @relation(fields: [noteFieldValueId], references: [id], onDelete: Cascade)
+  fieldOptionId    String
+  fieldOption      FieldOption    @relation(fields: [fieldOptionId], references: [id], onDelete: Cascade)
+
+  @@id([noteFieldValueId, fieldOptionId])
+}
+
+model InsightFieldValue {
+  id              String    @id @default(cuid())
+  insightId       String
+  insight         Insight   @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  fieldId         String
+  field           Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  valueText       String?
+  valueNumber     Float?
+  valueDate       DateTime?
+  teamMemberId    String?
+  teamMember      TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  selectedOptions InsightFieldValueOption[]
+
+  @@unique([insightId, fieldId])
+}
+
+model InsightFieldValueOption {
+  insightFieldValueId String
+  insightFieldValue   InsightFieldValue @relation(fields: [insightFieldValueId], references: [id], onDelete: Cascade)
+  fieldOptionId       String
+  fieldOption         FieldOption       @relation(fields: [fieldOptionId], references: [id], onDelete: Cascade)
+
+  @@id([insightFieldValueId, fieldOptionId])
+}
+
+// ── Views ────────────────────────────────────────────────────────
+
+enum ViewEntityType {
+  NOTE
+  HIGHLIGHT
+  INSIGHT
+}
+
+enum ViewLayout {
+  GRID
+  BOARD
+  TABLE
+  CANVAS
+  LIST
+}
+
+model View {
+  id             String         @id @default(cuid())
+  projectId      String
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name           String
+  entityType     ViewEntityType
+  layout         ViewLayout
+  groupByFieldId String?
+  groupByField   Field?         @relation("GroupByField", fields: [groupByFieldId], references: [id], onDelete: SetNull)
+  sortFieldId    String?
+  sortField      Field?         @relation("SortField", fields: [sortFieldId], references: [id], onDelete: SetNull)
+  sortDirection  String?
+  filterConfig   Json           @default("[]")
+  order          Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  cardPositions CanvasCardPosition[]
+
+  @@unique([projectId, name])
+}
+
+enum CanvasSubjectType {
+  NOTE
+  HIGHLIGHT
+  INSIGHT
+}
+
+model CanvasCardPosition {
+  id          String            @id @default(cuid())
+  viewId      String
+  view        View              @relation(fields: [viewId], references: [id], onDelete: Cascade)
+  subjectType CanvasSubjectType
+  subjectId   String
+  x           Float
+  y           Float
+  width       Float?
+  height      Float?
+  zIndex      Int               @default(0)
+
+  @@unique([viewId, subjectType, subjectId])
+}

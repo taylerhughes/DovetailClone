@@ -8,6 +8,7 @@ import { Uploader } from "@/components/attachments/Uploader";
 import { MediaPlayer } from "@/components/attachments/MediaPlayer";
 import { WholeNoteHighlightButton } from "@/components/highlights/WholeNoteHighlightButton";
 import { HighlightRow } from "@/components/highlights/HighlightRow";
+import { FieldEditorCell } from "@/components/fields/FieldEditorCell";
 
 export default async function NoteDetailPage({
   params,
@@ -15,7 +16,7 @@ export default async function NoteDetailPage({
   params: Promise<{ projectId: string; noteId: string }>;
 }) {
   const { projectId, noteId } = await params;
-  const [note, tags] = await Promise.all([
+  const [note, tags, fields, teamMembers] = await Promise.all([
     db.note.findUnique({
       where: { id: noteId },
       include: {
@@ -24,14 +25,23 @@ export default async function NoteDetailPage({
           orderBy: { order: "asc" },
           include: { tagAssignments: { select: { tagId: true } } },
         },
+        fieldValues: { include: { selectedOptions: true } },
       },
     }),
     db.tag.findMany({ where: { projectId }, orderBy: { name: "asc" } }),
+    db.field.findMany({
+      where: { projectId, appliesTo: { in: ["NOTE", "BOTH"] } },
+      orderBy: { order: "asc" },
+      include: { options: { orderBy: { order: "asc" } } },
+    }),
+    db.teamMember.findMany({ where: { projectId }, orderBy: { name: "asc" } }),
   ]);
 
   if (!note) {
     notFound();
   }
+
+  const valuesByFieldId = new Map(note.fieldValues.map((v) => [v.fieldId, v]));
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -43,6 +53,38 @@ export default async function NoteDetailPage({
         <Uploader noteId={note.id} />
         <NoteActions noteId={note.id} />
       </div>
+
+      {fields.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 rounded-lg border p-3 sm:grid-cols-3">
+          {fields.map((field) => {
+            const fv = valuesByFieldId.get(field.id);
+            return (
+              <div key={field.id} className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {field.name}
+                </span>
+                <FieldEditorCell
+                  noteId={note.id}
+                  fieldId={field.id}
+                  type={field.type}
+                  options={field.options}
+                  teamMembers={teamMembers}
+                  value={{
+                    valueText: fv?.valueText ?? null,
+                    valueNumber: fv?.valueNumber ?? null,
+                    valueDate: fv?.valueDate
+                      ? fv.valueDate.toISOString().slice(0, 10)
+                      : null,
+                    teamMemberId: fv?.teamMemberId ?? null,
+                    selectedOptionIds:
+                      fv?.selectedOptions.map((o) => o.fieldOptionId) ?? [],
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {note.attachments.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

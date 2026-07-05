@@ -138,8 +138,15 @@ export default async function NoteDetailPage({
 
       <NoteEditor
         noteId={note.id}
+        projectId={projectId}
         initialContent={note.content as JSONContent}
         speakerMaps={speakerMaps}
+        allTags={tags}
+        highlights={note.highlights.map((h) => ({
+          id: h.id,
+          markId: h.markId,
+          tagIds: h.tagAssignments.map((t) => t.tagId),
+        }))}
       />
 
       {isAiEnabled() && <SummarizeButton noteId={note.id} />}

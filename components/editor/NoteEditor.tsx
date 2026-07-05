@@ -15,21 +15,33 @@ import { TranscriptSegment } from "@/components/editor/extensions/transcriptSegm
 import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
 import { findTranscriptClipRange } from "@/lib/editor/transcriptRange";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
+import { InlineHighlightTagPopover } from "@/components/highlights/InlineHighlightTagPopover";
+import type { TagOption } from "@/components/tags/TagPicker";
 
 const AUTOSAVE_DELAY_MS = 800;
 
 export function NoteEditor({
   noteId,
+  projectId,
   initialContent,
   speakerMaps,
+  allTags,
+  highlights,
 }: {
   noteId: string;
+  projectId: string;
   initialContent: JSONContent;
   speakerMaps?: Map<string, Map<string, string>>;
+  allTags: TagOption[];
+  highlights: { id: string; markId: string | null; tagIds: string[] }[];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<"saved" | "saving" | "idle">("saved");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeHighlight, setActiveHighlight] = useState<{
+    markId: string;
+    anchor: HTMLElement;
+  } | null>(null);
 
   const saveNow = useCallback(
     async (doc: JSONContent) => {
@@ -61,6 +73,21 @@ export function NoteEditor({
       attributes: {
         class:
           "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[60vh]",
+      },
+      handleDOMEvents: {
+        click: (_view, event) => {
+          const target = event.target as HTMLElement | null;
+          const mark = target?.closest<HTMLElement>("mark[data-highlight-id]");
+          if (mark) {
+            setActiveHighlight({
+              markId: mark.dataset.highlightId!,
+              anchor: mark,
+            });
+          } else {
+            setActiveHighlight(null);
+          }
+          return false;
+        },
       },
     },
     onUpdate: ({ editor }) => {
@@ -100,14 +127,14 @@ export function NoteEditor({
     const { from, to } = editor.state.selection;
     if (from === to) return;
     const quote = editor.state.doc.textBetween(from, to, " ");
-    const highlightId = crypto.randomUUID();
+    const markId = crypto.randomUUID();
     const clip = findTranscriptClipRange(editor.state.doc, from, to);
 
-    editor.chain().focus().setHighlightMark(highlightId).setTextSelection(to).run();
+    editor.chain().focus().setHighlightMark(markId).setTextSelection(to).run();
     await saveNow(editor.getJSON());
     await createHighlight(
       noteId,
-      highlightId,
+      markId,
       quote,
       clip
         ? {
@@ -118,7 +145,16 @@ export function NoteEditor({
         : undefined,
     );
     router.refresh();
+
+    const anchor = editor.view.dom.querySelector<HTMLElement>(
+      `mark[data-highlight-id="${CSS.escape(markId)}"]`,
+    );
+    if (anchor) setActiveHighlight({ markId, anchor });
   }
+
+  const activeHighlightRecord = activeHighlight
+    ? highlights.find((h) => h.markId === activeHighlight.markId)
+    : undefined;
 
   if (!editor) return null;
 
@@ -138,6 +174,16 @@ export function NoteEditor({
           </Button>
         </BubbleMenu>
         <EditorContent editor={editor} />
+        {activeHighlight && activeHighlightRecord && (
+          <InlineHighlightTagPopover
+            projectId={projectId}
+            highlightId={activeHighlightRecord.id}
+            anchor={activeHighlight.anchor}
+            tagIds={activeHighlightRecord.tagIds}
+            allTags={allTags}
+            onClose={() => setActiveHighlight(null)}
+          />
+        )}
       </div>
     </SpeakerMapContext.Provider>
   );

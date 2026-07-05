@@ -3,12 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { colorForIndex } from "@/lib/palette";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 
 export async function createTag(
   projectId: string,
   name: string,
   parentId?: string | null,
 ) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Tag name is required");
 
@@ -27,7 +32,19 @@ export async function createTag(
   return tag;
 }
 
+async function requireTagAccess(tagId: string, userId: string) {
+  const tag = await db.tag.findUniqueOrThrow({
+    where: { id: tagId },
+    select: { projectId: true, parentId: true },
+  });
+  await requireProjectAccess(tag.projectId, userId);
+  return tag;
+}
+
 export async function renameTag(tagId: string, name: string) {
+  const user = await requireUser();
+  await requireTagAccess(tagId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Tag name is required");
 
@@ -41,13 +58,13 @@ export async function renameTag(tagId: string, name: string) {
 }
 
 export async function setTagParent(tagId: string, parentId: string | null) {
+  const user = await requireUser();
+  await requireTagAccess(tagId, user.id);
+
   if (parentId === tagId) throw new Error("A tag cannot be its own parent");
 
   if (parentId) {
-    const targetParent = await db.tag.findUniqueOrThrow({
-      where: { id: parentId },
-      select: { parentId: true },
-    });
+    const targetParent = await requireTagAccess(parentId, user.id);
     if (targetParent.parentId) {
       throw new Error("Tags only support one level of nesting");
     }
@@ -63,6 +80,9 @@ export async function setTagParent(tagId: string, parentId: string | null) {
 }
 
 export async function recolorTag(tagId: string, color: string) {
+  const user = await requireUser();
+  await requireTagAccess(tagId, user.id);
+
   const tag = await db.tag.update({
     where: { id: tagId },
     data: { color },
@@ -73,6 +93,9 @@ export async function recolorTag(tagId: string, color: string) {
 }
 
 export async function deleteTag(tagId: string) {
+  const user = await requireUser();
+  await requireTagAccess(tagId, user.id);
+
   const tag = await db.tag.delete({
     where: { id: tagId },
     select: { projectId: true },

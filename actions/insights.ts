@@ -5,10 +5,15 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
 import { extractHighlightEmbedIds } from "@/lib/editor/extractIds";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { JSONContent } from "@tiptap/react";
 
 export async function createInsight(projectId: string) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const insight = await db.insight.create({
     data: {
       projectId,
@@ -22,7 +27,19 @@ export async function createInsight(projectId: string) {
   redirect(`/projects/${projectId}/insights/${insight.id}`);
 }
 
+async function requireInsightAccess(insightId: string, userId: string) {
+  const insight = await db.insight.findUniqueOrThrow({
+    where: { id: insightId },
+    select: { projectId: true },
+  });
+  await requireProjectAccess(insight.projectId, userId);
+  return insight;
+}
+
 export async function updateInsightTitle(insightId: string, title: string) {
+  const user = await requireUser();
+  await requireInsightAccess(insightId, user.id);
+
   const insight = await db.insight.update({
     where: { id: insightId },
     data: { title: title.trim() || "Untitled insight" },
@@ -58,6 +75,9 @@ export async function updateInsightContent(
   insightId: string,
   content: Prisma.InputJsonValue,
 ) {
+  const user = await requireUser();
+  await requireInsightAccess(insightId, user.id);
+
   const plainText = docToPlainText(content as never);
 
   const insight = await db.insight.update({
@@ -72,6 +92,9 @@ export async function updateInsightContent(
 }
 
 export async function deleteInsight(insightId: string) {
+  const user = await requireUser();
+  await requireInsightAccess(insightId, user.id);
+
   const insight = await db.insight.delete({
     where: { id: insightId },
     select: { projectId: true },

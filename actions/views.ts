@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type {
   ViewEntityType,
   ViewLayout,
@@ -20,12 +22,21 @@ function tabPathFor(entityType: ViewEntityType) {
   }
 }
 
+async function requireViewAccess(viewId: string, userId: string) {
+  const view = await db.view.findUniqueOrThrow({ where: { id: viewId } });
+  await requireProjectAccess(view.projectId, userId);
+  return view;
+}
+
 export async function createView(
   projectId: string,
   entityType: ViewEntityType,
   layout: ViewLayout,
   name: string,
 ) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) throw new Error("View name is required");
 
@@ -39,6 +50,9 @@ export async function createView(
 }
 
 export async function renameView(viewId: string, name: string) {
+  const user = await requireUser();
+  await requireViewAccess(viewId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) throw new Error("View name is required");
 
@@ -50,6 +64,9 @@ export async function renameView(viewId: string, name: string) {
 }
 
 export async function deleteView(viewId: string) {
+  const user = await requireUser();
+  await requireViewAccess(viewId, user.id);
+
   const view = await db.view.delete({ where: { id: viewId } });
   revalidatePath(`/projects/${view.projectId}/${tabPathFor(view.entityType)}`);
 }
@@ -63,6 +80,9 @@ export async function updateViewConfig(
     filterConfig?: FilterRule[];
   },
 ) {
+  const user = await requireUser();
+  await requireViewAccess(viewId, user.id);
+
   const data: Prisma.ViewUpdateInput = {};
   if ("groupByFieldId" in config) {
     data.groupByField = config.groupByFieldId

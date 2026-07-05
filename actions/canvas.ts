@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type { CanvasSubjectType } from "@/lib/generated/prisma/client";
 
-async function tabPathFor(viewId: string) {
+async function requireCanvasViewAccess(viewId: string, userId: string) {
   const view = await db.view.findUniqueOrThrow({
     where: { id: viewId },
     select: {
@@ -12,6 +14,8 @@ async function tabPathFor(viewId: string) {
       entityType: true,
     },
   });
+  await requireProjectAccess(view.projectId, userId);
+
   const slug =
     view.entityType === "NOTE"
       ? "data"
@@ -28,12 +32,15 @@ export async function updateCardPosition(
   x: number,
   y: number,
 ) {
+  const user = await requireUser();
+  const tabPath = await requireCanvasViewAccess(viewId, user.id);
+
   await db.canvasCardPosition.upsert({
     where: { viewId_subjectType_subjectId: { viewId, subjectType, subjectId } },
     create: { viewId, subjectType, subjectId, x, y },
     update: { x, y },
   });
-  revalidatePath(await tabPathFor(viewId));
+  revalidatePath(tabPath);
 }
 
 export async function addToCanvas(
@@ -41,6 +48,9 @@ export async function addToCanvas(
   subjectType: CanvasSubjectType,
   subjectId: string,
 ) {
+  const user = await requireUser();
+  const tabPath = await requireCanvasViewAccess(viewId, user.id);
+
   const count = await db.canvasCardPosition.count({ where: { viewId } });
   const offset = (count % 10) * 24;
   await db.canvasCardPosition.create({
@@ -52,7 +62,7 @@ export async function addToCanvas(
       y: 40 + offset,
     },
   });
-  revalidatePath(await tabPathFor(viewId));
+  revalidatePath(tabPath);
 }
 
 export async function removeFromCanvas(
@@ -60,8 +70,11 @@ export async function removeFromCanvas(
   subjectType: CanvasSubjectType,
   subjectId: string,
 ) {
+  const user = await requireUser();
+  const tabPath = await requireCanvasViewAccess(viewId, user.id);
+
   await db.canvasCardPosition.delete({
     where: { viewId_subjectType_subjectId: { viewId, subjectType, subjectId } },
   });
-  revalidatePath(await tabPathFor(viewId));
+  revalidatePath(tabPath);
 }

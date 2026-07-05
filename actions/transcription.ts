@@ -3,13 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
-import { syncHighlightsForNote } from "@/actions/highlights";
+import { syncHighlightsForNote } from "@/lib/highlights/sync";
 import { docToPlainText } from "@/lib/editor/plainText";
 import { getAssemblyAiClient, isTranscriptionEnabled } from "@/lib/transcription/client";
 import {
   buildTranscriptSegments,
   appendTranscriptToDoc,
 } from "@/lib/transcription/buildTranscriptDoc";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { JSONContent } from "@tiptap/react";
 
@@ -17,6 +19,13 @@ export async function transcribeAttachment(attachmentId: string) {
   if (!isTranscriptionEnabled()) {
     throw new Error("Transcription is disabled: ASSEMBLYAI_API_KEY is not set.");
   }
+
+  const user = await requireUser();
+  const existing = await db.attachment.findUniqueOrThrow({
+    where: { id: attachmentId },
+    select: { note: { select: { projectId: true } } },
+  });
+  await requireProjectAccess(existing.note.projectId, user.id);
 
   const attachment = await db.attachment.update({
     where: { id: attachmentId },
@@ -39,10 +48,12 @@ export async function setSpeakerMapping(
   speakerLabel: string,
   teamMemberId: string | null,
 ) {
+  const user = await requireUser();
   const attachment = await db.attachment.findUniqueOrThrow({
     where: { id: attachmentId },
     select: { speakerMap: true, noteId: true, note: { select: { projectId: true } } },
   });
+  await requireProjectAccess(attachment.note.projectId, user.id);
 
   const speakerMap = { ...(attachment.speakerMap as Record<string, string> | null) };
   if (teamMemberId) {

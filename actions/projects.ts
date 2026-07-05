@@ -3,8 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 
 export async function createProject(formData: FormData) {
+  const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
 
@@ -13,7 +16,7 @@ export async function createProject(formData: FormData) {
   }
 
   const project = await db.project.create({
-    data: { name, description: description || null },
+    data: { name, description: description || null, userId: user.id },
   });
 
   revalidatePath("/");
@@ -21,6 +24,9 @@ export async function createProject(formData: FormData) {
 }
 
 export async function renameProject(projectId: string, name: string) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) {
     throw new Error("Project name is required");
@@ -39,6 +45,9 @@ export async function updateProjectDescription(
   projectId: string,
   description: string,
 ) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   await db.project.update({
     where: { id: projectId },
     data: { description: description.trim() || null },
@@ -48,6 +57,9 @@ export async function updateProjectDescription(
 }
 
 export async function deleteProject(projectId: string) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   await db.project.delete({ where: { id: projectId } });
 
   revalidatePath("/");

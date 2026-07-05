@@ -4,11 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
-import { syncHighlightsForNote } from "@/actions/highlights";
+import { syncHighlightsForNote } from "@/lib/highlights/sync";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { JSONContent } from "@tiptap/react";
 
 export async function createNote(projectId: string) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const note = await db.note.create({
     data: {
       projectId,
@@ -23,6 +28,13 @@ export async function createNote(projectId: string) {
 }
 
 export async function updateNoteTitle(noteId: string, title: string) {
+  const user = await requireUser();
+  const existing = await db.note.findUniqueOrThrow({
+    where: { id: noteId },
+    select: { projectId: true },
+  });
+  await requireProjectAccess(existing.projectId, user.id);
+
   const note = await db.note.update({
     where: { id: noteId },
     data: { title: title.trim() || "Untitled" },
@@ -36,6 +48,13 @@ export async function updateNoteContent(
   noteId: string,
   content: Prisma.InputJsonValue,
 ) {
+  const user = await requireUser();
+  const existing = await db.note.findUniqueOrThrow({
+    where: { id: noteId },
+    select: { projectId: true },
+  });
+  await requireProjectAccess(existing.projectId, user.id);
+
   const plainText = docToPlainText(content as never);
 
   const note = await db.note.update({
@@ -50,6 +69,13 @@ export async function updateNoteContent(
 }
 
 export async function deleteNote(noteId: string) {
+  const user = await requireUser();
+  const existing = await db.note.findUniqueOrThrow({
+    where: { id: noteId },
+    select: { projectId: true },
+  });
+  await requireProjectAccess(existing.projectId, user.id);
+
   const note = await db.note.delete({
     where: { id: noteId },
     select: { projectId: true },

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type { FieldValueInput } from "@/lib/fieldValueTypes";
 
 async function ensureNoteFieldValue(noteId: string, fieldId: string) {
@@ -17,10 +19,12 @@ export async function setNoteFieldValue(
   fieldId: string,
   input: FieldValueInput,
 ) {
+  const user = await requireUser();
   const note = await db.note.findUniqueOrThrow({
     where: { id: noteId },
     select: { projectId: true },
   });
+  await requireProjectAccess(note.projectId, user.id);
 
   switch (input.kind) {
     case "TEXT": {

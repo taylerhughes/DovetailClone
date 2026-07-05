@@ -10,12 +10,17 @@ import { storage } from "@/lib/storage";
 import { trimClip } from "@/lib/ffmpeg/trim";
 import { concatClips } from "@/lib/ffmpeg/concat";
 import { REEL_ELIGIBLE_HIGHLIGHT_WHERE } from "@/lib/highlightReelEligibility";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 
 export async function createHighlightReel(
   projectId: string,
   tagId: string,
   name: string,
 ) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const reel = await db.highlightReel.create({
     data: { projectId, tagId, name: name.trim() || "Untitled reel" },
   });

@@ -3,11 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { colorForIndex } from "@/lib/palette";
+import { requireUser } from "@/lib/auth/session";
+import { requireProjectAccess } from "@/lib/auth/authorize";
 import type { FieldAppliesTo, FieldType } from "@/lib/generated/prisma/client";
 
 async function revalidateProjectFields(projectId: string) {
   revalidatePath(`/projects/${projectId}/fields`);
   revalidatePath(`/projects/${projectId}/data`);
+}
+
+async function requireFieldAccess(fieldId: string, userId: string) {
+  const field = await db.field.findUniqueOrThrow({
+    where: { id: fieldId },
+    select: { projectId: true },
+  });
+  await requireProjectAccess(field.projectId, userId);
+  return field;
+}
+
+async function requireFieldOptionAccess(optionId: string, userId: string) {
+  const option = await db.fieldOption.findUniqueOrThrow({
+    where: { id: optionId },
+    select: { field: { select: { projectId: true } } },
+  });
+  await requireProjectAccess(option.field.projectId, userId);
+  return option;
 }
 
 export async function createField(
@@ -16,6 +36,9 @@ export async function createField(
   type: FieldType,
   appliesTo: FieldAppliesTo = "BOTH",
 ) {
+  const user = await requireUser();
+  await requireProjectAccess(projectId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Field name is required");
 
@@ -29,6 +52,9 @@ export async function createField(
 }
 
 export async function renameField(fieldId: string, name: string) {
+  const user = await requireUser();
+  await requireFieldAccess(fieldId, user.id);
+
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Field name is required");
 
@@ -41,6 +67,9 @@ export async function renameField(fieldId: string, name: string) {
 }
 
 export async function deleteField(fieldId: string) {
+  const user = await requireUser();
+  await requireFieldAccess(fieldId, user.id);
+
   const field = await db.field.delete({
     where: { id: fieldId },
     select: { projectId: true },
@@ -49,6 +78,7 @@ export async function deleteField(fieldId: string) {
 }
 
 export async function addFieldOption(fieldId: string, label: string) {
+  const user = await requireUser();
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Option label is required");
 
@@ -56,6 +86,7 @@ export async function addFieldOption(fieldId: string, label: string) {
     where: { id: fieldId },
     select: { projectId: true, _count: { select: { options: true } } },
   });
+  await requireProjectAccess(field.projectId, user.id);
 
   const option = await db.fieldOption.create({
     data: {
@@ -71,6 +102,9 @@ export async function addFieldOption(fieldId: string, label: string) {
 }
 
 export async function renameFieldOption(optionId: string, label: string) {
+  const user = await requireUser();
+  await requireFieldOptionAccess(optionId, user.id);
+
   const trimmed = label.trim();
   if (!trimmed) throw new Error("Option label is required");
 
@@ -83,6 +117,9 @@ export async function renameFieldOption(optionId: string, label: string) {
 }
 
 export async function deleteFieldOption(optionId: string) {
+  const user = await requireUser();
+  await requireFieldOptionAccess(optionId, user.id);
+
   const option = await db.fieldOption.delete({
     where: { id: optionId },
     select: { field: { select: { projectId: true } } },

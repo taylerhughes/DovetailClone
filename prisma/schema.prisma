@@ -34,6 +34,8 @@ model Note {
   title     String   @default("Untitled")
   content   Json
   plainText String   @default("")
+  /// generated column populated by migration SQL, not written to directly
+  searchVector Unsupported("tsvector")?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -75,6 +77,8 @@ model Highlight {
   quote     String
   orphaned  Boolean  @default(false)
   order     Int      @default(0)
+  /// generated column populated by migration SQL, not written to directly
+  searchVector Unsupported("tsvector")?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -92,6 +96,8 @@ model Insight {
   title     String   @default("Untitled insight")
   content   Json
   plainText String   @default("")
+  /// generated column populated by migration SQL, not written to directly
+  searchVector Unsupported("tsvector")?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

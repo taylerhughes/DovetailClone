@@ -5,15 +5,24 @@ import { FileIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { registerMediaElement } from "@/lib/editor/mediaRegistry";
+import { TranscribeButton } from "@/components/attachments/TranscribeButton";
 
 type Attachment = {
   id: string;
   kind: "VIDEO" | "AUDIO" | "IMAGE" | "FILE";
   originalName: string;
   mimeType: string;
+  transcriptionStatus: "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+  transcriptionError: string | null;
 };
 
-export function MediaPlayer({ attachment }: { attachment: Attachment }) {
+export function MediaPlayer({
+  attachment,
+  transcriptionEnabled = false,
+}: {
+  attachment: Attachment;
+  transcriptionEnabled?: boolean;
+}) {
   const router = useRouter();
   const src = `/api/attachments/${attachment.id}`;
 
@@ -34,14 +43,24 @@ export function MediaPlayer({ attachment }: { attachment: Attachment }) {
         <span className="line-clamp-1 text-xs text-muted-foreground">
           {attachment.originalName}
         </span>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Delete attachment"
-          onClick={handleDelete}
-        >
-          <Trash2 />
-        </Button>
+        <div className="flex items-center gap-1">
+          {transcriptionEnabled &&
+            (attachment.kind === "VIDEO" || attachment.kind === "AUDIO") && (
+              <TranscribeButton
+                attachmentId={attachment.id}
+                initialStatus={attachment.transcriptionStatus}
+                initialError={attachment.transcriptionError}
+              />
+            )}
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Delete attachment"
+            onClick={handleDelete}
+          >
+            <Trash2 />
+          </Button>
+        </div>
       </div>
       {attachment.kind === "VIDEO" && (
         <video

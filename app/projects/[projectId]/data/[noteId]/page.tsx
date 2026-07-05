@@ -12,6 +12,7 @@ import { FieldEditorCell } from "@/components/fields/FieldEditorCell";
 import { setNoteFieldValue } from "@/actions/fieldValues";
 import { SummarizeButton } from "@/components/ai/SummarizeButton";
 import { isAiEnabled } from "@/lib/ai/client";
+import { isTranscriptionEnabled } from "@/lib/transcription/client";
 
 export default async function NoteDetailPage({
   params,
@@ -91,7 +92,11 @@ export default async function NoteDetailPage({
       {note.attachments.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {note.attachments.map((attachment) => (
-            <MediaPlayer key={attachment.id} attachment={attachment} />
+            <MediaPlayer
+              key={attachment.id}
+              attachment={attachment}
+              transcriptionEnabled={isTranscriptionEnabled()}
+            />
           ))}
         </div>
       )}

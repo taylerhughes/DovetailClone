@@ -4,20 +4,38 @@ import { ProjectCard } from "@/components/projects/ProjectCard";
 import { CapNotice } from "@/components/ui/CapNotice";
 import { LIST_RESULT_CAP } from "@/lib/constants";
 import { requireUser } from "@/lib/auth/session";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 export default async function Home() {
   const user = await requireUser();
 
+  const memberships = await db.member.findMany({
+    where: { userId: user.id },
+    select: { organizationId: true },
+  });
+  const memberOrgIds = memberships.map((m) => m.organizationId);
+
+  // A project is reachable as its owner, via an individual share, or via a
+  // live org membership when the project has org-wide sharing enabled --
+  // the same conditions resolveProjectAccess checks per-project.
+  const accessWhere: Prisma.ProjectWhereInput = {
+    OR: [
+      { userId: user.id },
+      { shares: { some: { userId: user.id } } },
+      { orgShareEnabled: true, organizationId: { in: memberOrgIds } },
+    ],
+  };
+
   const [projects, totalProjects] = await Promise.all([
     db.project.findMany({
-      where: { userId: user.id },
+      where: accessWhere,
       orderBy: { updatedAt: "desc" },
       take: LIST_RESULT_CAP,
       include: {
         _count: { select: { notes: true, insights: true } },
       },
     }),
-    db.project.count({ where: { userId: user.id } }),
+    db.project.count({ where: accessWhere }),
   ]);
 
   return (

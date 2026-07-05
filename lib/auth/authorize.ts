@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 
 export type ProjectAccessLevel = "owner" | "editor" | "viewer" | "none";
+export type ResolvedProjectAccessLevel = Exclude<ProjectAccessLevel, "none">;
 
 // Always resolved live against current ownership/share/membership rows --
 // never gated on session.activeOrganizationId, which only tracks which
@@ -55,7 +56,7 @@ export async function hasProjectEditAccess(projectId: string, userId: string) {
 export async function requireProjectViewAccess(
   projectId: string,
   userId: string,
-): Promise<ProjectAccessLevel> {
+): Promise<ResolvedProjectAccessLevel> {
   const level = await resolveProjectAccess(projectId, userId);
   if (level === "none") notFound();
   return level;
@@ -67,7 +68,7 @@ export async function requireProjectViewAccess(
 export async function requireProjectEditAccess(
   projectId: string,
   userId: string,
-): Promise<ProjectAccessLevel> {
+): Promise<ResolvedProjectAccessLevel> {
   const level = await requireProjectViewAccess(projectId, userId);
   if (level === "viewer") {
     throw new Error("You only have view access to this project");

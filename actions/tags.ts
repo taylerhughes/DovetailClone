@@ -43,6 +43,16 @@ export async function renameTag(tagId: string, name: string) {
 export async function setTagParent(tagId: string, parentId: string | null) {
   if (parentId === tagId) throw new Error("A tag cannot be its own parent");
 
+  if (parentId) {
+    const targetParent = await db.tag.findUniqueOrThrow({
+      where: { id: parentId },
+      select: { parentId: true },
+    });
+    if (targetParent.parentId) {
+      throw new Error("Tags only support one level of nesting");
+    }
+  }
+
   const tag = await db.tag.update({
     where: { id: tagId },
     data: { parentId },

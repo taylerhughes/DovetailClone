@@ -5,6 +5,10 @@ import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+// Video/audio need a much higher ceiling than documents/images — a research
+// interview recording routinely runs into the hundreds of MB, and rejecting
+// those would make the transcription feature unusable for real files.
+const MAX_MEDIA_UPLOAD_BYTES = 500 * 1024 * 1024;
 
 const ALLOWED_MIME_PREFIXES = ["image/", "audio/", "video/"];
 const ALLOWED_EXACT_MIME_TYPES = [
@@ -51,9 +55,11 @@ export async function POST(request: Request) {
         { status: 415 },
       );
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
+    const isMedia = mimeType.startsWith("video/") || mimeType.startsWith("audio/");
+    const maxBytes = isMedia ? MAX_MEDIA_UPLOAD_BYTES : MAX_UPLOAD_BYTES;
+    if (file.size > maxBytes) {
       return NextResponse.json(
-        { error: `File exceeds the ${MAX_UPLOAD_BYTES / (1024 * 1024)}MB upload limit` },
+        { error: `File exceeds the ${maxBytes / (1024 * 1024)}MB upload limit` },
         { status: 413 },
       );
     }

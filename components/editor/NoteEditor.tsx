@@ -87,6 +87,23 @@ export function NoteEditor({
     };
   }, []);
 
+  // useEditor only uses `initialContent` at creation time — it never re-syncs
+  // when the prop changes on a later render. A background transcription job
+  // finishing and calling router.refresh() is exactly that case: the server
+  // re-renders with new note.content, but without this effect the already-
+  // mounted editor would keep showing the stale pre-transcript document.
+  // Skip the sync while the editor has focus so it doesn't clobber whatever
+  // the user is actively typing.
+  useEffect(() => {
+    if (!editor || editor.isFocused) return;
+    const current = JSON.stringify(editor.getJSON());
+    const next = JSON.stringify(initialContent);
+    if (current !== next) {
+      editor.commands.setContent(initialContent);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, initialContent]);
+
   async function handleAddHighlight() {
     if (!editor) return;
     const { from, to } = editor.state.selection;

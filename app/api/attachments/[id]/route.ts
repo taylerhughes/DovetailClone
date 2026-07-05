@@ -63,12 +63,20 @@ export async function DELETE(
   }
 
   try {
-    await storage.delete(attachment.storageKey);
-
+    // Delete the DB row first: if this fails, nothing changed. Deleting
+    // storage first risked leaving a row that permanently points at a
+    // missing file if the DB call then failed — an orphaned file on disk
+    // (cleaned up right after) is the safer side to fail on.
     const note = await db.attachment.delete({
       where: { id },
       select: { note: { select: { id: true, projectId: true } } },
     });
+
+    try {
+      await storage.delete(attachment.storageKey);
+    } catch (err) {
+      console.error("attachment storage cleanup failed", err);
+    }
 
     revalidatePath(`/projects/${note.note.projectId}/data/${note.note.id}`);
 

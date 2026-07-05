@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { trimClip } from "@/lib/ffmpeg/trim";
 import { concatClips } from "@/lib/ffmpeg/concat";
+import { REEL_ELIGIBLE_HIGHLIGHT_WHERE } from "@/lib/highlightReelEligibility";
 
 export async function createHighlightReel(
   projectId: string,
@@ -44,9 +45,7 @@ async function processHighlightReel(reelId: string) {
     const highlights = await db.highlight.findMany({
       where: {
         tagAssignments: { some: { tagId: reel.tagId } },
-        attachmentId: { not: null },
-        clipStartSec: { not: null },
-        clipEndSec: { not: null },
+        ...REEL_ELIGIBLE_HIGHLIGHT_WHERE,
       },
       orderBy: { createdAt: "asc" },
       include: { attachment: true },

@@ -47,11 +47,18 @@ export default async function InsightsPage({
   const fieldTypesById = new Map(fields.map((f) => [f.id, f.type]));
   const where = buildInsightWhere(projectId, filterConfig, fieldTypesById);
 
+  // A custom sort re-orders the whole matching set in memory, so capping the
+  // query itself would silently sort only within an arbitrary
+  // most-recently-updated subset instead of the true full result. Only cap
+  // at the query level when there's no custom sort to get right; cap the
+  // array afterwards instead, once the true order is known.
+  const hasCustomSort = Boolean(activeView?.sortFieldId);
+
   const [insightsResult, totalInsights] = await Promise.all([
     db.insight.findMany({
       where,
       orderBy: { updatedAt: "desc" },
-      take: LIST_RESULT_CAP,
+      take: hasCustomSort ? undefined : LIST_RESULT_CAP,
       include: { fieldValues: { include: { selectedOptions: true } } },
     }),
     db.insight.count({ where }),
@@ -68,6 +75,7 @@ export default async function InsightsPage({
         (activeView.sortDirection as SortDirection) ?? "asc",
       );
     }
+    insights = insights.slice(0, LIST_RESULT_CAP);
   }
 
   const basePath = `/projects/${projectId}/insights`;

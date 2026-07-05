@@ -6,6 +6,7 @@ import { TagBadge } from "@/components/tags/TagBadge";
 import { HighlightRow } from "@/components/highlights/HighlightRow";
 import { HighlightReelPanel } from "@/components/tags/HighlightReelPanel";
 import { isAiEnabled } from "@/lib/ai/client";
+import { isReelEligibleHighlight } from "@/lib/highlightReelEligibility";
 
 export default async function TagDetailPage({
   params,
@@ -24,6 +25,7 @@ export default async function TagDetailPage({
           include: {
             note: { select: { id: true, title: true } },
             tagAssignments: { select: { tagId: true } },
+            attachment: { select: { kind: true } },
           },
         },
       },
@@ -39,8 +41,13 @@ export default async function TagDetailPage({
   }
 
   const highlights = highlightTags.map((ht) => ht.highlight);
-  const eligibleCount = highlights.filter(
-    (h) => h.attachmentId && h.clipStartSec !== null && h.clipEndSec !== null,
+  const eligibleCount = highlights.filter((h) =>
+    isReelEligibleHighlight({
+      attachmentId: h.attachmentId,
+      clipStartSec: h.clipStartSec,
+      clipEndSec: h.clipEndSec,
+      attachmentKind: h.attachment?.kind ?? null,
+    }),
   ).length;
 
   return (

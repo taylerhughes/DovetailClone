@@ -92,25 +92,41 @@ async function processTranscription(attachmentId: string) {
     }));
     const segments = buildTranscriptSegments(utterances, attachmentId);
 
-    const note = await db.note.findUniqueOrThrow({
-      where: { id: attachment.noteId },
-      select: { content: true },
-    });
-    const nextDoc = appendTranscriptToDoc(note.content as JSONContent, segments);
-    const plainText = docToPlainText(nextDoc as never);
-
     // Note: this intentionally does NOT reuse the `updateNoteContent` server
     // action, since that action calls `revalidatePath` — which throws when
     // called from a detached background task with no active request/render
     // context. The client instead polls transcription-status and calls
     // `router.refresh()` on completion, which re-fetches fresh data directly.
-    await db.note.update({
-      where: { id: attachment.noteId },
-      data: {
-        content: nextDoc as unknown as Prisma.InputJsonValue,
-        plainText,
-      },
-    });
+    //
+    // The read-append-write below races a concurrent user autosave of the
+    // same note, so it's guarded with an optimistic-concurrency check
+    // (updateMany scoped to the updatedAt just read) and retried a few times
+    // if another write won the race in between, instead of blindly
+    // overwriting whatever the user just typed.
+    let nextDoc: JSONContent | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const note = await db.note.findUniqueOrThrow({
+        where: { id: attachment.noteId },
+        select: { content: true, updatedAt: true },
+      });
+      nextDoc = appendTranscriptToDoc(note.content as JSONContent, segments);
+      const plainText = docToPlainText(nextDoc as never);
+
+      const { count } = await db.note.updateMany({
+        where: { id: attachment.noteId, updatedAt: note.updatedAt },
+        data: {
+          content: nextDoc as unknown as Prisma.InputJsonValue,
+          plainText,
+        },
+      });
+      if (count > 0) break;
+      nextDoc = null;
+    }
+    if (!nextDoc) {
+      throw new Error(
+        "Could not save transcript: the note kept changing concurrently",
+      );
+    }
     await syncHighlightsForNote(attachment.noteId, nextDoc);
 
     await db.attachment.update({

@@ -10,6 +10,8 @@ import { WholeNoteHighlightButton } from "@/components/highlights/WholeNoteHighl
 import { HighlightRow } from "@/components/highlights/HighlightRow";
 import { FieldEditorCell } from "@/components/fields/FieldEditorCell";
 import { setNoteFieldValue } from "@/actions/fieldValues";
+import { SummarizeButton } from "@/components/ai/SummarizeButton";
+import { isAiEnabled } from "@/lib/ai/client";
 
 export default async function NoteDetailPage({
   params,
@@ -99,6 +101,8 @@ export default async function NoteDetailPage({
         initialContent={note.content as JSONContent}
       />
 
+      {isAiEnabled() && <SummarizeButton noteId={note.id} />}
+
       {note.highlights.length > 0 && (
         <div className="flex flex-col gap-2 border-t pt-4">
           <h3 className="text-sm font-medium text-muted-foreground">
@@ -110,6 +114,7 @@ export default async function NoteDetailPage({
                 key={h.id}
                 projectId={projectId}
                 allTags={tags}
+                aiEnabled={isAiEnabled()}
                 highlight={{
                   id: h.id,
                   quote: h.quote,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TagPicker, type TagOption } from "@/components/tags/TagPicker";
+import { SuggestTagsButton } from "@/components/ai/SuggestTagsButton";
 import { addHighlightTag, removeHighlightTag, deleteHighlight } from "@/actions/highlights";
 import { createTag } from "@/actions/tags";
 
@@ -13,6 +14,7 @@ export function HighlightRow({
   highlight,
   allTags,
   showSourceLink = false,
+  aiEnabled = false,
 }: {
   projectId: string;
   highlight: {
@@ -26,6 +28,7 @@ export function HighlightRow({
   };
   allTags: TagOption[];
   showSourceLink?: boolean;
+  aiEnabled?: boolean;
 }) {
   const router = useRouter();
 
@@ -66,23 +69,36 @@ export function HighlightRow({
         </Link>
       )}
 
-      <TagPicker
-        allTags={allTags}
-        assignedTagIds={highlight.tagIds}
-        onAssign={async (tagId) => {
-          await addHighlightTag(highlight.id, tagId);
-          router.refresh();
-        }}
-        onUnassign={async (tagId) => {
-          await removeHighlightTag(highlight.id, tagId);
-          router.refresh();
-        }}
-        onCreateTag={async (name) => {
-          const tag = await createTag(projectId, name);
-          router.refresh();
-          return tag.id;
-        }}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <TagPicker
+          allTags={allTags}
+          assignedTagIds={highlight.tagIds}
+          onAssign={async (tagId) => {
+            await addHighlightTag(highlight.id, tagId);
+            router.refresh();
+          }}
+          onUnassign={async (tagId) => {
+            await removeHighlightTag(highlight.id, tagId);
+            router.refresh();
+          }}
+          onCreateTag={async (name) => {
+            const tag = await createTag(projectId, name);
+            router.refresh();
+            return tag.id;
+          }}
+        />
+        {aiEnabled && (
+          <SuggestTagsButton
+            projectId={projectId}
+            text={highlight.quote}
+            allTags={allTags}
+            assignedTagIds={highlight.tagIds}
+            onAccept={(tagId) => {
+              void addHighlightTag(highlight.id, tagId).then(() => router.refresh());
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

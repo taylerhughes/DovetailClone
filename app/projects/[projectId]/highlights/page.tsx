@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
-import { HighlightRow } from "@/components/highlights/HighlightRow";
+import { HighlightsList } from "@/components/highlights/HighlightsList";
+import { isAiEnabled } from "@/lib/ai/client";
 
 export default async function HighlightsPage({
   params,
@@ -34,25 +35,20 @@ export default async function HighlightsPage({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {highlights.map((h) => (
-            <HighlightRow
-              key={h.id}
-              projectId={projectId}
-              allTags={tags}
-              showSourceLink
-              highlight={{
-                id: h.id,
-                quote: h.quote,
-                wholeNote: h.wholeNote,
-                orphaned: h.orphaned,
-                noteId: h.note.id,
-                noteTitle: h.note.title,
-                tagIds: h.tagAssignments.map((t) => t.tagId),
-              }}
-            />
-          ))}
-        </div>
+        <HighlightsList
+          projectId={projectId}
+          allTags={tags}
+          aiEnabled={isAiEnabled()}
+          highlights={highlights.map((h) => ({
+            id: h.id,
+            quote: h.quote,
+            wholeNote: h.wholeNote,
+            orphaned: h.orphaned,
+            noteId: h.note.id,
+            noteTitle: h.note.title,
+            tagIds: h.tagAssignments.map((t) => t.tagId),
+          }))}
+        />
       )}
     </div>
   );

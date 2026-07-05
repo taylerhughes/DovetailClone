@@ -13,6 +13,8 @@ import { setNoteFieldValue } from "@/actions/fieldValues";
 import { SummarizeButton } from "@/components/ai/SummarizeButton";
 import { isAiEnabled } from "@/lib/ai/client";
 import { isTranscriptionEnabled } from "@/lib/transcription/client";
+import { SpeakerMappingPanel } from "@/components/attachments/SpeakerMappingPanel";
+import { extractTranscriptSpeakers } from "@/lib/editor/extractIds";
 
 export default async function NoteDetailPage({
   params,
@@ -46,6 +48,19 @@ export default async function NoteDetailPage({
   }
 
   const valuesByFieldId = new Map(note.fieldValues.map((v) => [v.fieldId, v]));
+
+  const teamMemberNameById = new Map(teamMembers.map((m) => [m.id, m.name]));
+  const speakerMaps = new Map<string, Map<string, string>>();
+  for (const attachment of note.attachments) {
+    const map = attachment.speakerMap as Record<string, string> | null;
+    if (!map) continue;
+    const resolved = new Map<string, string>();
+    for (const [label, teamMemberId] of Object.entries(map)) {
+      const name = teamMemberNameById.get(teamMemberId);
+      if (name) resolved.set(label, name);
+    }
+    speakerMaps.set(attachment.id, resolved);
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -91,19 +106,40 @@ export default async function NoteDetailPage({
 
       {note.attachments.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {note.attachments.map((attachment) => (
-            <MediaPlayer
-              key={attachment.id}
-              attachment={attachment}
-              transcriptionEnabled={isTranscriptionEnabled()}
-            />
-          ))}
+          {note.attachments.map((attachment) => {
+            const speakers =
+              attachment.transcriptionStatus === "DONE"
+                ? extractTranscriptSpeakers(
+                    note.content as JSONContent,
+                    attachment.id,
+                  )
+                : [];
+            return (
+              <div key={attachment.id} className="flex flex-col gap-2">
+                <MediaPlayer
+                  attachment={attachment}
+                  transcriptionEnabled={isTranscriptionEnabled()}
+                />
+                {speakers.length > 0 && (
+                  <SpeakerMappingPanel
+                    attachmentId={attachment.id}
+                    speakers={speakers}
+                    speakerMap={
+                      (attachment.speakerMap as Record<string, string> | null) ?? {}
+                    }
+                    teamMembers={teamMembers}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
       <NoteEditor
         noteId={note.id}
         initialContent={note.content as JSONContent}
+        speakerMaps={speakerMaps}
       />
 
       {isAiEnabled() && <SummarizeButton noteId={note.id} />}

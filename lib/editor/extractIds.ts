@@ -60,6 +60,34 @@ export function extractHighlightEmbedIds(
   return ids;
 }
 
+/** Extracts the distinct `speaker` labels used by `transcriptSegment` nodes for a given attachment, in first-seen order. */
+export function extractTranscriptSpeakers(
+  doc: JSONContent | null | undefined,
+  attachmentId: string,
+): string[] {
+  const speakers: string[] = [];
+  const seen = new Set<string>();
+
+  function walk(node: JSONContent) {
+    if (
+      node.type === "transcriptSegment" &&
+      node.attrs?.attachmentId === attachmentId &&
+      node.attrs?.speaker &&
+      !seen.has(node.attrs.speaker)
+    ) {
+      seen.add(node.attrs.speaker);
+      speakers.push(node.attrs.speaker as string);
+    }
+    if (node.content) {
+      for (const child of node.content) walk(child);
+    }
+  }
+
+  if (doc) walk(doc);
+
+  return speakers;
+}
+
 /** Removes a `highlight` mark (by id) from every text run in the doc, in place-safe (returns a new doc). */
 export function stripHighlightMark(
   doc: JSONContent,

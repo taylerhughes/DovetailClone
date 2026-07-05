@@ -34,6 +34,33 @@ export async function transcribeAttachment(attachmentId: string) {
   void processTranscription(attachmentId);
 }
 
+export async function setSpeakerMapping(
+  attachmentId: string,
+  speakerLabel: string,
+  teamMemberId: string | null,
+) {
+  const attachment = await db.attachment.findUniqueOrThrow({
+    where: { id: attachmentId },
+    select: { speakerMap: true, noteId: true, note: { select: { projectId: true } } },
+  });
+
+  const speakerMap = { ...(attachment.speakerMap as Record<string, string> | null) };
+  if (teamMemberId) {
+    speakerMap[speakerLabel] = teamMemberId;
+  } else {
+    delete speakerMap[speakerLabel];
+  }
+
+  await db.attachment.update({
+    where: { id: attachmentId },
+    data: { speakerMap },
+  });
+
+  revalidatePath(
+    `/projects/${attachment.note.projectId}/data/${attachment.noteId}`,
+  );
+}
+
 async function processTranscription(attachmentId: string) {
   const attachment = await db.attachment.findUnique({
     where: { id: attachmentId },

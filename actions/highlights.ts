@@ -16,6 +16,7 @@ export async function createHighlight(
   noteId: string,
   markId: string,
   quote: string,
+  clipRange?: { attachmentId: string; clipStartSec: number; clipEndSec: number },
 ) {
   const note = await db.note.findUniqueOrThrow({
     where: { id: noteId },
@@ -26,8 +27,8 @@ export async function createHighlight(
 
   const highlight = await db.highlight.upsert({
     where: { noteId_markId: { noteId, markId } },
-    create: { noteId, markId, quote, order },
-    update: { quote, orphaned: false },
+    create: { noteId, markId, quote, order, ...clipRange },
+    update: { quote, orphaned: false, ...clipRange },
   });
 
   await revalidateHighlightPaths(note.projectId, noteId);

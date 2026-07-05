@@ -15,6 +15,7 @@ import { createHighlight } from "@/actions/highlights";
 import { HighlightMark } from "@/components/editor/extensions/highlightMark";
 import { TranscriptSegment } from "@/components/editor/extensions/transcriptSegment";
 import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
+import { findTranscriptClipRange } from "@/lib/editor/transcriptRange";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 
 const AUTOSAVE_DELAY_MS = 800;
@@ -92,10 +93,22 @@ export function NoteEditor({
     if (from === to) return;
     const quote = editor.state.doc.textBetween(from, to, " ");
     const highlightId = crypto.randomUUID();
+    const clip = findTranscriptClipRange(editor.state.doc, from, to);
 
     editor.chain().focus().setHighlightMark(highlightId).run();
     await saveNow(editor.getJSON());
-    await createHighlight(noteId, highlightId, quote);
+    await createHighlight(
+      noteId,
+      highlightId,
+      quote,
+      clip
+        ? {
+            attachmentId: clip.attachmentId,
+            clipStartSec: clip.startSec,
+            clipEndSec: clip.endSec,
+          }
+        : undefined,
+    );
     router.refresh();
   }
 

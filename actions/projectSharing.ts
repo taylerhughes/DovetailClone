@@ -2,7 +2,6 @@
 
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectOwnerAccess } from "@/lib/auth/authorize";
@@ -149,5 +148,5 @@ export async function redeemShareLink(token: string) {
     },
   });
 
-  redirect(`/projects/${project.id}/data`);
+  return { projectId: project.id };
 }

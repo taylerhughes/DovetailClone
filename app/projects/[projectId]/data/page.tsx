@@ -1,50 +1,135 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { NewNoteButton } from "@/components/notes/NewNoteButton";
+import { ViewSwitcher } from "@/components/views/ViewSwitcher";
+import { ViewConfigPanel } from "@/components/views/ViewConfigPanel";
+import { GridView } from "@/components/views/GridView";
+import { ListView } from "@/components/views/ListView";
+import { BoardView } from "@/components/views/BoardView";
+import { TableView } from "@/components/views/TableView";
+import { buildNoteWhere } from "@/lib/views/queryBuilder";
+import { sortByField, groupByField } from "@/lib/views/sortGroup";
+import type { FilterRule, SortDirection } from "@/lib/views/types";
+import type { FieldType } from "@/lib/generated/prisma/client";
 
 export default async function DataPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { projectId } = await params;
-  const notes = await db.note.findMany({
-    where: { projectId },
+  const { view: viewIdParam } = await searchParams;
+
+  const [views, fields, teamMembers] = await Promise.all([
+    db.view.findMany({
+      where: { projectId, entityType: "NOTE" },
+      orderBy: { order: "asc" },
+    }),
+    db.field.findMany({
+      where: { projectId, appliesTo: { in: ["NOTE", "BOTH"] } },
+      orderBy: { order: "asc" },
+      include: { options: { orderBy: { order: "asc" } } },
+    }),
+    db.teamMember.findMany({ where: { projectId }, orderBy: { name: "asc" } }),
+  ]);
+
+  const activeView = views.find((v) => v.id === viewIdParam) ?? views[0] ?? null;
+  const layout = activeView?.layout ?? "GRID";
+  const filterConfig = ((activeView?.filterConfig as unknown as FilterRule[]) ?? []);
+
+  const fieldTypesById = new Map(fields.map((f) => [f.id, f.type]));
+  const where = buildNoteWhere(projectId, filterConfig, fieldTypesById);
+
+  let notes = await db.note.findMany({
+    where,
     orderBy: { updatedAt: "desc" },
+    include: { fieldValues: { include: { selectedOptions: true } } },
   });
+
+  if (activeView?.sortFieldId) {
+    const sortFieldType = fieldTypesById.get(activeView.sortFieldId);
+    if (sortFieldType) {
+      notes = sortByField(
+        notes,
+        activeView.sortFieldId,
+        sortFieldType,
+        (activeView.sortDirection as SortDirection) ?? "asc",
+      );
+    }
+  }
+
+  const basePath = `/projects/${projectId}/data`;
 
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          {notes.length} {notes.length === 1 ? "note" : "notes"}
-        </h2>
-        <NewNoteButton projectId={projectId} />
+      <div className="flex items-center justify-between gap-2">
+        <ViewSwitcher
+          basePath={basePath}
+          projectId={projectId}
+          entityType="NOTE"
+          views={views}
+          activeViewId={activeView?.id ?? null}
+        />
+        <div className="flex items-center gap-2">
+          {activeView && (
+            <ViewConfigPanel
+              viewId={activeView.id}
+              layout={layout}
+              fields={fields}
+              fieldOptionsById={
+                new Map(fields.map((f) => [f.id, f.options]))
+              }
+              teamMembers={teamMembers}
+              groupByFieldId={activeView.groupByFieldId}
+              sortFieldId={activeView.sortFieldId}
+              sortDirection={activeView.sortDirection as SortDirection | null}
+              filterConfig={filterConfig}
+            />
+          )}
+          <NewNoteButton projectId={projectId} />
+        </div>
       </div>
 
-      {notes.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-          <p className="text-sm font-medium">No notes yet</p>
-          <p className="text-sm text-muted-foreground">
-            Add a note to start capturing research.
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col divide-y rounded-lg border">
-          {notes.map((note) => (
-            <Link
-              key={note.id}
-              href={`/projects/${projectId}/data/${note.id}`}
-              className="flex flex-col gap-1 p-4 hover:bg-muted/50"
-            >
-              <span className="text-sm font-medium">{note.title}</span>
-              <span className="line-clamp-1 text-xs text-muted-foreground">
-                {note.plainText || "Empty note"}
-              </span>
-            </Link>
-          ))}
-        </div>
+      {layout === "GRID" && <GridView projectId={projectId} notes={notes} />}
+      {layout === "LIST" && <ListView projectId={projectId} notes={notes} />}
+      {layout === "TABLE" && (
+        <TableView
+          projectId={projectId}
+          notes={notes}
+          fields={fields}
+          teamMembers={teamMembers}
+        />
       )}
+      {layout === "BOARD" &&
+        (() => {
+          const groupField = fields.find((f) => f.id === activeView?.groupByFieldId);
+          if (!groupField || !["SINGLE_SELECT", "MULTI_SELECT", "PERSON"].includes(groupField.type)) {
+            return (
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
+                <p className="text-sm font-medium">Pick a group-by field</p>
+                <p className="text-sm text-muted-foreground">
+                  Use Configure to choose a select or person field to group by.
+                </p>
+              </div>
+            );
+          }
+          const columns = groupByField(
+            notes,
+            groupField.id,
+            groupField.type as Extract<FieldType, "SINGLE_SELECT" | "MULTI_SELECT" | "PERSON">,
+            groupField.options,
+            teamMembers,
+          );
+          return (
+            <BoardView
+              projectId={projectId}
+              columns={columns}
+              groupByFieldId={groupField.id}
+              groupByFieldType={groupField.type}
+            />
+          );
+        })()}
     </div>
   );
 }

@@ -12,6 +12,8 @@ import { getCanvasData } from "@/lib/views/canvasData";
 import { buildInsightWhere } from "@/lib/views/queryBuilder";
 import { setInsightFieldValue } from "@/actions/insightFieldValues";
 import { sortByField, groupByField } from "@/lib/views/sortGroup";
+import { CapNotice } from "@/components/ui/CapNotice";
+import { LIST_RESULT_CAP } from "@/lib/constants";
 import type { FilterRule, SortDirection } from "@/lib/views/types";
 import type { FieldType } from "@/lib/generated/prisma/client";
 
@@ -45,11 +47,16 @@ export default async function InsightsPage({
   const fieldTypesById = new Map(fields.map((f) => [f.id, f.type]));
   const where = buildInsightWhere(projectId, filterConfig, fieldTypesById);
 
-  let insights = await db.insight.findMany({
-    where,
-    orderBy: { updatedAt: "desc" },
-    include: { fieldValues: { include: { selectedOptions: true } } },
-  });
+  const [insightsResult, totalInsights] = await Promise.all([
+    db.insight.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      take: LIST_RESULT_CAP,
+      include: { fieldValues: { include: { selectedOptions: true } } },
+    }),
+    db.insight.count({ where }),
+  ]);
+  let insights = insightsResult;
 
   if (activeView?.sortFieldId) {
     const sortFieldType = fieldTypesById.get(activeView.sortFieldId);
@@ -94,6 +101,8 @@ export default async function InsightsPage({
           <NewInsightButton projectId={projectId} />
         </div>
       </div>
+
+      <CapNotice shown={insights.length} total={totalInsights} />
 
       {layout === "GRID" && (
         <GridView basePath={basePath} records={notes} emptyLabel="No insights match this view" />

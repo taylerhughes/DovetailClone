@@ -12,6 +12,8 @@ import { getCanvasData } from "@/lib/views/canvasData";
 import { buildNoteWhere } from "@/lib/views/queryBuilder";
 import { setNoteFieldValue } from "@/actions/fieldValues";
 import { sortByField, groupByField } from "@/lib/views/sortGroup";
+import { CapNotice } from "@/components/ui/CapNotice";
+import { LIST_RESULT_CAP } from "@/lib/constants";
 import type { FilterRule, SortDirection } from "@/lib/views/types";
 import type { FieldType } from "@/lib/generated/prisma/client";
 
@@ -45,11 +47,16 @@ export default async function DataPage({
   const fieldTypesById = new Map(fields.map((f) => [f.id, f.type]));
   const where = buildNoteWhere(projectId, filterConfig, fieldTypesById);
 
-  let notes = await db.note.findMany({
-    where,
-    orderBy: { updatedAt: "desc" },
-    include: { fieldValues: { include: { selectedOptions: true } } },
-  });
+  const [notesResult, totalNotes] = await Promise.all([
+    db.note.findMany({
+      where,
+      orderBy: { updatedAt: "desc" },
+      take: LIST_RESULT_CAP,
+      include: { fieldValues: { include: { selectedOptions: true } } },
+    }),
+    db.note.count({ where }),
+  ]);
+  let notes = notesResult;
 
   if (activeView?.sortFieldId) {
     const sortFieldType = fieldTypesById.get(activeView.sortFieldId);
@@ -95,6 +102,8 @@ export default async function DataPage({
           <NewNoteButton projectId={projectId} />
         </div>
       </div>
+
+      <CapNotice shown={notes.length} total={totalNotes} />
 
       {layout === "GRID" && <GridView basePath={basePath} records={notes} />}
       {layout === "LIST" && <ListView basePath={basePath} records={notes} />}

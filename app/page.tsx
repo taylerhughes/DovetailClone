@@ -1,14 +1,20 @@
 import { db } from "@/lib/db";
 import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { ProjectCard } from "@/components/projects/ProjectCard";
+import { CapNotice } from "@/components/ui/CapNotice";
+import { LIST_RESULT_CAP } from "@/lib/constants";
 
 export default async function Home() {
-  const projects = await db.project.findMany({
-    orderBy: { updatedAt: "desc" },
-    include: {
-      _count: { select: { notes: true, insights: true } },
-    },
-  });
+  const [projects, totalProjects] = await Promise.all([
+    db.project.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: LIST_RESULT_CAP,
+      include: {
+        _count: { select: { notes: true, insights: true } },
+      },
+    }),
+    db.project.count(),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
@@ -25,18 +31,21 @@ export default async function Home() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              id={project.id}
-              name={project.name}
-              description={project.description}
-              noteCount={project._count.notes}
-              insightCount={project._count.insights}
-            />
-          ))}
-        </div>
+        <>
+          <CapNotice shown={projects.length} total={totalProjects} />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <ProjectCard
+                key={project.id}
+                id={project.id}
+                name={project.name}
+                description={project.description}
+                noteCount={project._count.notes}
+                insightCount={project._count.insights}
+              />
+            ))}
+          </div>
+        </>
       )}
     </main>
   );

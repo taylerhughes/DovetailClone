@@ -5,6 +5,8 @@ import { HighlightsBoardView } from "@/components/highlights/HighlightsBoardView
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { groupByTag } from "@/lib/views/sortGroup";
 import { isAiEnabled } from "@/lib/ai/client";
+import { CapNotice } from "@/components/ui/CapNotice";
+import { LIST_RESULT_CAP } from "@/lib/constants";
 
 export default async function HighlightsPage({
   params,
@@ -16,7 +18,7 @@ export default async function HighlightsPage({
   const { projectId } = await params;
   const { view: viewIdParam } = await searchParams;
 
-  const [views, highlights, tags] = await Promise.all([
+  const [views, highlights, tags, totalHighlights] = await Promise.all([
     db.view.findMany({
       where: { projectId, entityType: "HIGHLIGHT" },
       orderBy: { order: "asc" },
@@ -24,12 +26,14 @@ export default async function HighlightsPage({
     db.highlight.findMany({
       where: { note: { projectId } },
       orderBy: { createdAt: "desc" },
+      take: LIST_RESULT_CAP,
       include: {
         note: { select: { id: true, title: true } },
         tagAssignments: { select: { tagId: true } },
       },
     }),
     db.tag.findMany({ where: { projectId }, orderBy: { name: "asc" } }),
+    db.highlight.count({ where: { note: { projectId } } }),
   ]);
 
   const activeView = views.find((v) => v.id === viewIdParam) ?? views[0] ?? null;
@@ -59,9 +63,11 @@ export default async function HighlightsPage({
           availableLayouts={["GRID", "LIST", "BOARD", "TABLE"]}
         />
         <span className="shrink-0 text-sm text-muted-foreground">
-          {highlights.length} {highlights.length === 1 ? "highlight" : "highlights"}
+          {totalHighlights} {totalHighlights === 1 ? "highlight" : "highlights"}
         </span>
       </div>
+
+      <CapNotice shown={highlights.length} total={totalHighlights} />
 
       {highlights.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">

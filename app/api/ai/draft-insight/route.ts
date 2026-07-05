@@ -5,6 +5,8 @@ import { isAiEnabled } from "@/lib/ai/client";
 import { draftInsightFromHighlights } from "@/lib/ai/summarize";
 import { docToPlainText } from "@/lib/editor/plainText";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { getCurrentUser } from "@/lib/auth/session";
+import { hasProjectAccess } from "@/lib/auth/authorize";
 
 const bodySchema = z.object({
   projectId: z.string(),
@@ -16,14 +18,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "AI features are disabled" }, { status: 503 });
   }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
   const { projectId, highlightIds } = parsed.data;
 
+  if (!(await hasProjectAccess(projectId, user.id))) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
   const highlights = await db.highlight.findMany({
-    where: { id: { in: highlightIds } },
+    where: { id: { in: highlightIds }, note: { projectId } },
     include: { tagAssignments: { include: { tag: true } } },
   });
 
@@ -50,7 +61,7 @@ export async function POST(request: Request) {
     });
 
     await db.insightHighlight.createMany({
-      data: highlightIds.map((highlightId) => ({ insightId: insight.id, highlightId })),
+      data: highlights.map((h) => ({ insightId: insight.id, highlightId: h.id })),
       skipDuplicates: true,
     });
 

@@ -2,14 +2,24 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth/session";
+import { hasProjectAccess } from "@/lib/auth/authorize";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
-  const attachment = await db.attachment.findUnique({ where: { id } });
-  if (!attachment) {
+  const attachment = await db.attachment.findUnique({
+    where: { id },
+    include: { note: { select: { projectId: true } } },
+  });
+  if (!attachment || !(await hasProjectAccess(attachment.note.projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
@@ -56,9 +66,17 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { id } = await params;
-  const attachment = await db.attachment.findUnique({ where: { id } });
-  if (!attachment) {
+  const attachment = await db.attachment.findUnique({
+    where: { id },
+    include: { note: { select: { projectId: true } } },
+  });
+  if (!attachment || !(await hasProjectAccess(attachment.note.projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 

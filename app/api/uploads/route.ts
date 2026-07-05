@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
+import { getCurrentUser } from "@/lib/auth/session";
+import { hasProjectAccess } from "@/lib/auth/authorize";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 // Video/audio need a much higher ceiling than documents/images — a research
@@ -37,6 +39,11 @@ function attachmentKindFromMime(mimeType: string): "VIDEO" | "AUDIO" | "IMAGE" |
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const noteId = formData.get("noteId");
     const file = formData.get("file");
@@ -69,6 +76,9 @@ export async function POST(request: Request) {
       select: { id: true, projectId: true },
     });
     if (!note) {
+      return NextResponse.json({ error: "note not found" }, { status: 404 });
+    }
+    if (!(await hasProjectAccess(note.projectId, user.id))) {
       return NextResponse.json({ error: "note not found" }, { status: 404 });
     }
 

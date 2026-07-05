@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { isAiEnabled } from "@/lib/ai/client";
 import { summarizeNote } from "@/lib/ai/summarize";
+import { getCurrentUser } from "@/lib/auth/session";
+import { hasProjectAccess } from "@/lib/auth/authorize";
 
 const bodySchema = z.object({
   noteId: z.string(),
@@ -13,6 +15,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "AI features are disabled" }, { status: 503 });
   }
 
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -20,9 +27,9 @@ export async function POST(request: Request) {
 
   const note = await db.note.findUnique({
     where: { id: parsed.data.noteId },
-    select: { plainText: true },
+    select: { plainText: true, projectId: true },
   });
-  if (!note) {
+  if (!note || !(await hasProjectAccess(note.projectId, user.id))) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });
   }
 

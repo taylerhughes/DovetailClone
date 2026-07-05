@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { FileIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { registerMediaElement } from "@/lib/editor/mediaRegistry";
 
 type Attachment = {
   id: string;
@@ -43,10 +44,20 @@ export function MediaPlayer({ attachment }: { attachment: Attachment }) {
         </Button>
       </div>
       {attachment.kind === "VIDEO" && (
-        <video src={src} controls className="max-h-80 w-full rounded" />
+        <video
+          src={src}
+          controls
+          className="max-h-80 w-full rounded"
+          ref={(el) => registerMediaElement(attachment.id, el)}
+        />
       )}
       {attachment.kind === "AUDIO" && (
-        <audio src={src} controls className="w-full" />
+        <audio
+          src={src}
+          controls
+          className="w-full"
+          ref={(el) => registerMediaElement(attachment.id, el)}
+        />
       )}
       {attachment.kind === "IMAGE" && (
         // eslint-disable-next-line @next/next/no-img-element

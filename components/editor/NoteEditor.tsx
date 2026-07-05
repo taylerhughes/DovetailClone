@@ -13,6 +13,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { updateNoteContent } from "@/actions/notes";
 import { createHighlight } from "@/actions/highlights";
 import { HighlightMark } from "@/components/editor/extensions/highlightMark";
+import { TranscriptSegment } from "@/components/editor/extensions/transcriptSegment";
+import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 
 const AUTOSAVE_DELAY_MS = 800;
@@ -20,9 +22,11 @@ const AUTOSAVE_DELAY_MS = 800;
 export function NoteEditor({
   noteId,
   initialContent,
+  speakerMaps,
 }: {
   noteId: string;
   initialContent: JSONContent;
+  speakerMaps?: Map<string, Map<string, string>>;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<"saved" | "saving" | "idle">("saved");
@@ -51,6 +55,7 @@ export function NoteEditor({
       }),
       Placeholder.configure({ placeholder: "Write or paste your notes…" }),
       HighlightMark,
+      TranscriptSegment,
     ],
     content: initialContent,
     editorProps: {
@@ -97,18 +102,20 @@ export function NoteEditor({
   if (!editor) return null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <EditorToolbar
-          editor={editor}
-          canHighlight={canHighlight}
-          onAddHighlight={handleAddHighlight}
-        />
-        <span className="text-xs text-muted-foreground">
-          {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
-        </span>
+    <SpeakerMapContext.Provider value={speakerMaps ?? new Map()}>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <EditorToolbar
+            editor={editor}
+            canHighlight={canHighlight}
+            onAddHighlight={handleAddHighlight}
+          />
+          <span className="text-xs text-muted-foreground">
+            {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
+          </span>
+        </div>
+        <EditorContent editor={editor} />
       </div>
-      <EditorContent editor={editor} />
-    </div>
+    </SpeakerMapContext.Provider>
   );
 }

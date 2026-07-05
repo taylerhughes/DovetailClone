@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  useEditor,
+  useEditorState,
+  EditorContent,
+  type JSONContent,
+} from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import Link from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
 import { updateNoteContent } from "@/actions/notes";
+import { createHighlight } from "@/actions/highlights";
+import { HighlightMark } from "@/components/editor/extensions/highlightMark";
+import { EditorToolbar } from "@/components/editor/EditorToolbar";
 
 const AUTOSAVE_DELAY_MS = 800;
 
@@ -17,16 +24,33 @@ export function NoteEditor({
   noteId: string;
   initialContent: JSONContent;
 }) {
+  const router = useRouter();
   const [status, setStatus] = useState<"saved" | "saving" | "idle">("saved");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const saveNow = useCallback(
+    async (doc: JSONContent) => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      setStatus("saving");
+      // Tiptap/ProseMirror's getJSON() output is textually identical to plain
+      // JSON but its nested mark/attrs objects aren't always plain-prototype
+      // objects, which breaks React Server Actions' argument serialization.
+      // Round-tripping through JSON forces a genuinely plain deep clone.
+      await updateNoteContent(noteId, JSON.parse(JSON.stringify(doc)));
+      setStatus("saved");
+    },
+    [noteId],
+  );
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        link: { openOnClick: false },
+      }),
       Placeholder.configure({ placeholder: "Write or paste your notes…" }),
-      Link.configure({ openOnClick: false }),
-      Underline,
+      HighlightMark,
     ],
     content: initialContent,
     editorProps: {
@@ -38,13 +62,18 @@ export function NoteEditor({
     onUpdate: ({ editor }) => {
       setStatus("idle");
       if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(async () => {
-        setStatus("saving");
-        await updateNoteContent(noteId, editor.getJSON());
-        setStatus("saved");
+      saveTimer.current = setTimeout(() => {
+        void saveNow(editor.getJSON());
       }, AUTOSAVE_DELAY_MS);
     },
   });
+
+  const { canHighlight } = useEditorState({
+    editor,
+    selector: ({ editor }) => ({
+      canHighlight: !!editor && !editor.state.selection.empty,
+    }),
+  }) ?? { canHighlight: false };
 
   useEffect(() => {
     return () => {
@@ -52,10 +81,32 @@ export function NoteEditor({
     };
   }, []);
 
+  async function handleAddHighlight() {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const quote = editor.state.doc.textBetween(from, to, " ");
+    const highlightId = crypto.randomUUID();
+
+    editor.chain().focus().setHighlightMark(highlightId).run();
+    await saveNow(editor.getJSON());
+    await createHighlight(noteId, highlightId, quote);
+    router.refresh();
+  }
+
+  if (!editor) return null;
+
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-right text-xs text-muted-foreground">
-        {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
+      <div className="flex items-center justify-between">
+        <EditorToolbar
+          editor={editor}
+          canHighlight={canHighlight}
+          onAddHighlight={handleAddHighlight}
+        />
+        <span className="text-xs text-muted-foreground">
+          {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
+        </span>
       </div>
       <EditorContent editor={editor} />
     </div>

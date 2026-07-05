@@ -128,3 +128,14 @@
     @apply font-sans;
   }
 }
+
+.note-highlight {
+  background-color: color-mix(in oklch, #eab308 35%, transparent);
+  border-radius: 0.15em;
+  padding: 0.05em 0;
+  cursor: pointer;
+}
+
+.note-highlight.note-highlight-active {
+  background-color: color-mix(in oklch, #eab308 65%, transparent);
+}

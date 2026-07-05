@@ -4,7 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-const TABS = [{ slug: "data", label: "Data" }];
+const TABS = [
+  { slug: "data", label: "Data" },
+  { slug: "highlights", label: "Highlights" },
+  { slug: "tags", label: "Tags" },
+];
 
 export function ProjectTabs({ projectId }: { projectId: string }) {
   const pathname = usePathname();

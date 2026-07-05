@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
+import { syncHighlightsForNote } from "@/actions/highlights";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import type { JSONContent } from "@tiptap/react";
 
 export async function createNote(projectId: string) {
   const note = await db.note.create({
@@ -41,6 +43,8 @@ export async function updateNoteContent(
     data: { content, plainText },
     select: { projectId: true },
   });
+
+  await syncHighlightsForNote(noteId, content as unknown as JSONContent);
 
   revalidatePath(`/projects/${note.projectId}/data`);
 }

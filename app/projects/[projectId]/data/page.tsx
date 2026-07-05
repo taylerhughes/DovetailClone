@@ -6,6 +6,9 @@ import { GridView } from "@/components/views/GridView";
 import { ListView } from "@/components/views/ListView";
 import { BoardView } from "@/components/views/BoardView";
 import { TableView } from "@/components/views/TableView";
+import { CanvasView } from "@/components/views/CanvasView";
+import { AddToCanvasPanel } from "@/components/views/canvas/AddToCanvasPanel";
+import { getCanvasData } from "@/lib/views/canvasData";
 import { buildNoteWhere } from "@/lib/views/queryBuilder";
 import { setNoteFieldValue } from "@/actions/fieldValues";
 import { sortByField, groupByField } from "@/lib/views/sortGroup";
@@ -71,9 +74,10 @@ export default async function DataPage({
           entityType="NOTE"
           views={views}
           activeViewId={activeView?.id ?? null}
+          availableLayouts={["GRID", "LIST", "BOARD", "TABLE", "CANVAS"]}
         />
         <div className="flex items-center gap-2">
-          {activeView && (
+          {activeView && layout !== "CANVAS" && (
             <ViewConfigPanel
               viewId={activeView.id}
               layout={layout}
@@ -134,6 +138,27 @@ export default async function DataPage({
             />
           );
         })()}
+      {layout === "CANVAS" && activeView && (
+        <CanvasSection projectId={projectId} viewId={activeView.id} />
+      )}
+    </div>
+  );
+}
+
+async function CanvasSection({
+  projectId,
+  viewId,
+}: {
+  projectId: string;
+  viewId: string;
+}) {
+  const { cards, candidates } = await getCanvasData(projectId, viewId);
+  return (
+    <div className="flex flex-1 flex-col gap-2">
+      <div className="flex justify-end">
+        <AddToCanvasPanel viewId={viewId} candidates={candidates} />
+      </div>
+      <CanvasView viewId={viewId} cards={cards} />
     </div>
   );
 }

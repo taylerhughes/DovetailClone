@@ -1,10 +1,20 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { getCurrentUser } from "@/lib/auth/session";
+import { db } from "@/lib/db";
+import { getCurrentUser, getActiveOrganizationId } from "@/lib/auth/session";
 import { UserMenu } from "@/components/auth/UserMenu";
+import { OrgSwitcher } from "@/components/organizations/OrgSwitcher";
 
 export async function TopNav() {
   const user = await getCurrentUser();
+  const organizations = user
+    ? await db.organization.findMany({
+        where: { members: { some: { userId: user.id } } },
+        orderBy: { name: "asc" },
+        select: { id: true, name: true },
+      })
+    : [];
+  const activeOrganizationId = user ? await getActiveOrganizationId() : null;
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
@@ -23,7 +33,13 @@ export async function TopNav() {
           </kbd>
         </Link>
         {user ? (
-          <UserMenu email={user.email} />
+          <>
+            <OrgSwitcher
+              organizations={organizations}
+              activeOrganizationId={activeOrganizationId}
+            />
+            <UserMenu email={user.email} />
+          </>
         ) : (
           <Link
             href="/sign-in"

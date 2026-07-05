@@ -12,3 +12,8 @@ export async function requireUser() {
   if (!user) redirect("/sign-in");
   return user;
 }
+
+export async function getActiveOrganizationId(): Promise<string | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session?.session.activeOrganizationId ?? null;
+}

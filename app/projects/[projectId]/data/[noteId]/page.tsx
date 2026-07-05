@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { NoteEditor } from "@/components/editor/NoteEditor";
 import { NoteTitle } from "@/components/notes/NoteTitle";
 import { NoteActions } from "@/components/notes/NoteActions";
+import { Uploader } from "@/components/attachments/Uploader";
+import { MediaPlayer } from "@/components/attachments/MediaPlayer";
 
 export default async function NoteDetailPage({
   params,
@@ -11,7 +13,10 @@ export default async function NoteDetailPage({
   params: Promise<{ projectId: string; noteId: string }>;
 }) {
   const { noteId } = await params;
-  const note = await db.note.findUnique({ where: { id: noteId } });
+  const note = await db.note.findUnique({
+    where: { id: noteId },
+    include: { attachments: { orderBy: { createdAt: "asc" } } },
+  });
 
   if (!note) {
     notFound();
@@ -23,8 +28,18 @@ export default async function NoteDetailPage({
         <div className="flex-1">
           <NoteTitle noteId={note.id} initialTitle={note.title} />
         </div>
+        <Uploader noteId={note.id} />
         <NoteActions noteId={note.id} />
       </div>
+
+      {note.attachments.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {note.attachments.map((attachment) => (
+            <MediaPlayer key={attachment.id} attachment={attachment} />
+          ))}
+        </div>
+      )}
+
       <NoteEditor
         noteId={note.id}
         initialContent={note.content as JSONContent}

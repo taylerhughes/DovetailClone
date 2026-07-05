@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { ProjectSettings } from "@/components/projects/ProjectSettings";
 import { ProjectTabs } from "@/components/projects/ProjectTabs";
+import { ShareDialog } from "@/components/projects/ShareDialog";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectViewAccess } from "@/lib/auth/authorize";
 import { ProjectAccessProvider } from "@/components/projects/ProjectAccessContext";
@@ -17,7 +18,13 @@ export default async function ProjectLayout({
   const { projectId } = await params;
   const user = await requireUser();
   const level = await requireProjectViewAccess(projectId, user.id);
-  const project = await db.project.findUnique({ where: { id: projectId } });
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    include: {
+      organization: { select: { name: true } },
+      shares: { include: { user: { select: { name: true, email: true } } } },
+    },
+  });
 
   if (!project) {
     notFound();
@@ -41,11 +48,30 @@ export default async function ProjectLayout({
                 {project.name}
               </h1>
             </div>
-            <ProjectSettings
-              projectId={project.id}
-              name={project.name}
-              description={project.description}
-            />
+            <div className="flex items-center gap-2">
+              {level === "owner" && (
+                <ShareDialog
+                  projectId={project.id}
+                  shares={project.shares.map((s) => ({
+                    userId: s.userId,
+                    name: s.user.name,
+                    email: s.user.email,
+                    role: s.role,
+                  }))}
+                  organizationName={project.organization?.name ?? null}
+                  orgShareEnabled={project.orgShareEnabled}
+                  orgShareRole={project.orgShareRole}
+                  shareLinkEnabled={project.shareLinkEnabled}
+                  shareLinkToken={project.shareLinkToken}
+                  shareLinkRole={project.shareLinkRole}
+                />
+              )}
+              <ProjectSettings
+                projectId={project.id}
+                name={project.name}
+                description={project.description}
+              />
+            </div>
           </div>
           <div className="mx-auto w-full max-w-5xl">
             <ProjectTabs projectId={project.id} />

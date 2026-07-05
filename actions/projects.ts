@@ -13,13 +13,24 @@ export async function createProject(formData: FormData) {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  const organizationId = String(formData.get("organizationId") ?? "").trim() || null;
 
   if (!name) {
     throw new Error("Project name is required");
   }
 
+  if (organizationId) {
+    const membership = await db.member.findFirst({
+      where: { organizationId, userId: user.id },
+      select: { id: true },
+    });
+    if (!membership) {
+      throw new Error("You are not a member of that organization");
+    }
+  }
+
   const project = await db.project.create({
-    data: { name, description: description || null, userId: user.id },
+    data: { name, description: description || null, userId: user.id, organizationId },
   });
 
   revalidatePath("/");

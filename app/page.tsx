@@ -11,7 +11,7 @@ export default async function Home() {
 
   const memberships = await db.member.findMany({
     where: { userId: user.id },
-    select: { organizationId: true },
+    include: { organization: { select: { id: true, name: true } } },
   });
   const memberOrgIds = memberships.map((m) => m.organizationId);
 
@@ -42,7 +42,9 @@ export default async function Home() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight">Projects</h1>
-        <CreateProjectDialog />
+        <CreateProjectDialog
+          organizations={memberships.map((m) => m.organization)}
+        />
       </div>
 
       {projects.length === 0 ? (

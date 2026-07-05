@@ -9,10 +9,12 @@ export function EditorToolbar({
   editor,
   onAddHighlight,
   canHighlight,
+  showHighlightButton = true,
 }: {
   editor: Editor;
-  onAddHighlight: () => void;
-  canHighlight: boolean;
+  onAddHighlight?: () => void;
+  canHighlight?: boolean;
+  showHighlightButton?: boolean;
 }) {
   return (
     <div className="flex items-center gap-1 border-b pb-2">
@@ -48,17 +50,21 @@ export function EditorToolbar({
       >
         <UnderlineIcon />
       </Button>
-      <div className="mx-1 h-4 w-px bg-border" />
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        disabled={!canHighlight}
-        onClick={onAddHighlight}
-      >
-        <Highlighter data-icon="inline-start" />
-        Highlight
-      </Button>
+      {showHighlightButton && (
+        <>
+          <div className="mx-1 h-4 w-px bg-border" />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canHighlight}
+            onClick={onAddHighlight}
+          >
+            <Highlighter data-icon="inline-start" />
+            Highlight
+          </Button>
+        </>
+      )}
     </div>
   );
 }

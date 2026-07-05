@@ -1,18 +1,18 @@
 import { db } from "@/lib/db";
-import { NewNoteButton } from "@/components/notes/NewNoteButton";
+import { NewInsightButton } from "@/components/insights/NewInsightButton";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { ViewConfigPanel } from "@/components/views/ViewConfigPanel";
 import { GridView } from "@/components/views/GridView";
 import { ListView } from "@/components/views/ListView";
 import { BoardView } from "@/components/views/BoardView";
 import { TableView } from "@/components/views/TableView";
-import { buildNoteWhere } from "@/lib/views/queryBuilder";
-import { setNoteFieldValue } from "@/actions/fieldValues";
+import { buildInsightWhere } from "@/lib/views/queryBuilder";
+import { setInsightFieldValue } from "@/actions/insightFieldValues";
 import { sortByField, groupByField } from "@/lib/views/sortGroup";
 import type { FilterRule, SortDirection } from "@/lib/views/types";
 import type { FieldType } from "@/lib/generated/prisma/client";
 
-export default async function DataPage({
+export default async function InsightsPage({
   params,
   searchParams,
 }: {
@@ -24,11 +24,11 @@ export default async function DataPage({
 
   const [views, fields, teamMembers] = await Promise.all([
     db.view.findMany({
-      where: { projectId, entityType: "NOTE" },
+      where: { projectId, entityType: "INSIGHT" },
       orderBy: { order: "asc" },
     }),
     db.field.findMany({
-      where: { projectId, appliesTo: { in: ["NOTE", "BOTH"] } },
+      where: { projectId, appliesTo: { in: ["INSIGHT", "BOTH"] } },
       orderBy: { order: "asc" },
       include: { options: { orderBy: { order: "asc" } } },
     }),
@@ -40,9 +40,9 @@ export default async function DataPage({
   const filterConfig = ((activeView?.filterConfig as unknown as FilterRule[]) ?? []);
 
   const fieldTypesById = new Map(fields.map((f) => [f.id, f.type]));
-  const where = buildNoteWhere(projectId, filterConfig, fieldTypesById);
+  const where = buildInsightWhere(projectId, filterConfig, fieldTypesById);
 
-  let notes = await db.note.findMany({
+  let insights = await db.insight.findMany({
     where,
     orderBy: { updatedAt: "desc" },
     include: { fieldValues: { include: { selectedOptions: true } } },
@@ -51,8 +51,8 @@ export default async function DataPage({
   if (activeView?.sortFieldId) {
     const sortFieldType = fieldTypesById.get(activeView.sortFieldId);
     if (sortFieldType) {
-      notes = sortByField(
-        notes,
+      insights = sortByField(
+        insights,
         activeView.sortFieldId,
         sortFieldType,
         (activeView.sortDirection as SortDirection) ?? "asc",
@@ -60,7 +60,8 @@ export default async function DataPage({
     }
   }
 
-  const basePath = `/projects/${projectId}/data`;
+  const basePath = `/projects/${projectId}/insights`;
+  const notes = insights.map((i) => ({ id: i.id, title: i.title, plainText: i.plainText }));
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -68,7 +69,7 @@ export default async function DataPage({
         <ViewSwitcher
           basePath={basePath}
           projectId={projectId}
-          entityType="NOTE"
+          entityType="INSIGHT"
           views={views}
           activeViewId={activeView?.id ?? null}
         />
@@ -78,9 +79,7 @@ export default async function DataPage({
               viewId={activeView.id}
               layout={layout}
               fields={fields}
-              fieldOptionsById={
-                new Map(fields.map((f) => [f.id, f.options]))
-              }
+              fieldOptionsById={new Map(fields.map((f) => [f.id, f.options]))}
               teamMembers={teamMembers}
               groupByFieldId={activeView.groupByFieldId}
               sortFieldId={activeView.sortFieldId}
@@ -88,20 +87,24 @@ export default async function DataPage({
               filterConfig={filterConfig}
             />
           )}
-          <NewNoteButton projectId={projectId} />
+          <NewInsightButton projectId={projectId} />
         </div>
       </div>
 
-      {layout === "GRID" && <GridView basePath={basePath} records={notes} />}
-      {layout === "LIST" && <ListView basePath={basePath} records={notes} />}
+      {layout === "GRID" && (
+        <GridView basePath={basePath} records={notes} emptyLabel="No insights match this view" />
+      )}
+      {layout === "LIST" && (
+        <ListView basePath={basePath} records={notes} emptyLabel="No insights match this view" />
+      )}
       {layout === "TABLE" && (
         <TableView
           projectId={projectId}
-          detailPathPrefix="data"
-          notes={notes}
+          detailPathPrefix="insights"
+          notes={insights}
           fields={fields}
           teamMembers={teamMembers}
-          fieldValueAction={setNoteFieldValue}
+          fieldValueAction={setInsightFieldValue}
         />
       )}
       {layout === "BOARD" &&
@@ -118,7 +121,7 @@ export default async function DataPage({
             );
           }
           const columns = groupByField(
-            notes,
+            insights,
             groupField.id,
             groupField.type as Extract<FieldType, "SINGLE_SELECT" | "MULTI_SELECT" | "PERSON">,
             groupField.options,
@@ -127,10 +130,13 @@ export default async function DataPage({
           return (
             <BoardView
               basePath={basePath}
-              columns={columns}
+              columns={columns.map((c) => ({
+                ...c,
+                records: c.records.map((r) => ({ id: r.id, title: r.title, plainText: r.plainText })),
+              }))}
               groupByFieldId={groupField.id}
               groupByFieldType={groupField.type}
-              fieldValueAction={setNoteFieldValue}
+              fieldValueAction={setInsightFieldValue}
             />
           );
         })()}

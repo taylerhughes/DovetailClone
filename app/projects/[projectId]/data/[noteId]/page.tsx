@@ -9,6 +9,7 @@ import { MediaPlayer } from "@/components/attachments/MediaPlayer";
 import { WholeNoteHighlightButton } from "@/components/highlights/WholeNoteHighlightButton";
 import { HighlightRow } from "@/components/highlights/HighlightRow";
 import { FieldEditorCell } from "@/components/fields/FieldEditorCell";
+import { setNoteFieldValue } from "@/actions/fieldValues";
 
 export default async function NoteDetailPage({
   params,
@@ -64,11 +65,10 @@ export default async function NoteDetailPage({
                   {field.name}
                 </span>
                 <FieldEditorCell
-                  noteId={note.id}
-                  fieldId={field.id}
                   type={field.type}
                   options={field.options}
                   teamMembers={teamMembers}
+                  onSubmit={setNoteFieldValue.bind(null, note.id, field.id)}
                   value={{
                     valueText: fv?.valueText ?? null,
                     valueNumber: fv?.valueNumber ?? null,

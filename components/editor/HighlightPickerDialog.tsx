@@ -1,0 +1,90 @@
+"use client";
+
+import { useState } from "react";
+import type { Editor } from "@tiptap/react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { TagBadge } from "@/components/tags/TagBadge";
+import type { HighlightEmbedData } from "@/components/editor/HighlightDataContext";
+
+export interface PickableHighlight extends HighlightEmbedData {
+  id: string;
+}
+
+export function HighlightPickerDialog({
+  editor,
+  highlights,
+  onInsert,
+}: {
+  editor: Editor;
+  highlights: PickableHighlight[];
+  onInsert: (highlightId: string, data: HighlightEmbedData) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const filtered = highlights.filter(
+    (h) =>
+      h.quote.toLowerCase().includes(query.toLowerCase()) ||
+      h.tags.some((t) => t.name.toLowerCase().includes(query.toLowerCase())),
+  );
+
+  function handleSelect(highlight: PickableHighlight) {
+    editor.chain().focus().insertHighlightEmbed(highlight.id).run();
+    onInsert(highlight.id, highlight);
+    setOpen(false);
+    setQuery("");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <Plus data-icon="inline-start" />
+        Insert highlight
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Insert highlight</DialogTitle>
+        </DialogHeader>
+        <Input
+          autoFocus
+          placeholder="Search highlights or tags…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <div className="flex max-h-80 flex-col gap-1.5 overflow-y-auto">
+          {filtered.length === 0 && (
+            <p className="p-2 text-sm text-muted-foreground">
+              No highlights found.
+            </p>
+          )}
+          {filtered.map((h) => (
+            <button
+              key={h.id}
+              onClick={() => handleSelect(h)}
+              className="flex flex-col gap-1 rounded-md border p-2 text-left text-sm hover:bg-muted"
+            >
+              <span className="line-clamp-2 italic">&ldquo;{h.quote}&rdquo;</span>
+              <div className="flex flex-wrap gap-1">
+                {h.tags.map((tag) => (
+                  <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">
+                From: {h.noteTitle}
+              </span>
+            </button>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

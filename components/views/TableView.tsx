@@ -21,6 +21,7 @@ import {
   type TeamMemberOption,
 } from "@/components/fields/FieldEditorCell";
 import type { FieldType } from "@/lib/generated/prisma/client";
+import type { FieldValueInput } from "@/lib/fieldValueTypes";
 
 type TableNote = {
   id: string;
@@ -47,21 +48,29 @@ const columnHelper = createColumnHelper<TableNote>();
 
 export function TableView({
   projectId,
+  detailPathPrefix,
   notes,
   fields,
   teamMembers,
+  fieldValueAction,
 }: {
   projectId: string;
+  detailPathPrefix: "data" | "insights";
   notes: TableNote[];
   fields: TableField[];
   teamMembers: TeamMemberOption[];
+  fieldValueAction: (
+    entityId: string,
+    fieldId: string,
+    input: FieldValueInput,
+  ) => Promise<void>;
 }) {
   const columns = [
     columnHelper.accessor("title", {
       header: "Title",
       cell: (info) => (
         <Link
-          href={`/projects/${projectId}/data/${info.row.original.id}`}
+          href={`/projects/${projectId}/${detailPathPrefix}/${info.row.original.id}`}
           className="font-medium hover:underline"
         >
           {info.getValue()}
@@ -77,11 +86,10 @@ export function TableView({
           const fv = note.fieldValues.find((v) => v.fieldId === field.id);
           return (
             <FieldEditorCell
-              noteId={note.id}
-              fieldId={field.id}
               type={field.type}
               options={field.options}
               teamMembers={teamMembers}
+              onSubmit={fieldValueAction.bind(null, note.id, field.id)}
               value={{
                 valueText: fv?.valueText ?? null,
                 valueNumber: fv?.valueNumber ?? null,

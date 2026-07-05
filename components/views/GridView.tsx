@@ -1,24 +1,31 @@
-import { NoteCard } from "@/components/cards/NoteCard";
+import { EntityCard } from "@/components/cards/EntityCard";
 
 export function GridView({
-  projectId,
-  notes,
+  basePath,
+  records,
+  emptyLabel = "No notes match this view",
 }: {
-  projectId: string;
-  notes: { id: string; title: string; plainText: string }[];
+  basePath: string;
+  records: { id: string; title: string; plainText: string }[];
+  emptyLabel?: string;
 }) {
-  if (notes.length === 0) {
+  if (records.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-        <p className="text-sm font-medium">No notes match this view</p>
+        <p className="text-sm font-medium">{emptyLabel}</p>
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {notes.map((note) => (
-        <NoteCard key={note.id} projectId={projectId} note={note} />
+      {records.map((record) => (
+        <EntityCard
+          key={record.id}
+          href={`${basePath}/${record.id}`}
+          title={record.title}
+          subtitle={record.plainText}
+        />
       ))}
     </div>
   );

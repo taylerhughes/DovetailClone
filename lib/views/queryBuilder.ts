@@ -2,14 +2,28 @@ import type { FieldType, Prisma } from "@/lib/generated/prisma/client";
 import type { FilterRule } from "./types";
 
 /**
- * Builds the inner NoteFieldValue match for a single filter rule, given the
+ * Structural shape shared by NoteFieldValueWhereInput and
+ * InsightFieldValueWhereInput (both value tables have identical columns) so
+ * buildFieldValueMatch can serve both entity types without Prisma's nominal
+ * per-model types getting in the way.
+ */
+export type FieldValueMatch = {
+  valueText?: { equals?: string; contains?: string; mode?: "insensitive" };
+  valueNumber?: { equals?: number; gt?: number; lt?: number };
+  valueDate?: { equals?: Date; lt?: Date; gt?: Date };
+  teamMemberId?: string | { in: string[] };
+  selectedOptions?: { some: { fieldOptionId: { in: string[] } } };
+};
+
+/**
+ * Builds the inner FieldValue match for a single filter rule, given the
  * type of the field being filtered on. Pure function: no DB access, easy to
  * exhaustively unit test per FieldType x FilterOperator combination.
  */
 export function buildFieldValueMatch(
   fieldType: FieldType,
   rule: FilterRule,
-): Prisma.NoteFieldValueWhereInput {
+): FieldValueMatch {
   switch (fieldType) {
     case "TEXT": {
       if (rule.operator === "equals") {
@@ -86,7 +100,10 @@ export function buildNoteFilterClause(
   }
   return {
     fieldValues: {
-      some: { fieldId: rule.fieldId, ...buildFieldValueMatch(fieldType, rule) },
+      some: {
+        fieldId: rule.fieldId,
+        ...buildFieldValueMatch(fieldType, rule),
+      } as Prisma.NoteFieldValueWhereInput,
     },
   };
 }
@@ -103,6 +120,37 @@ export function buildNoteWhere(
   const clauses = rules
     .filter((rule) => fieldTypesById.has(rule.fieldId))
     .map((rule) => buildNoteFilterClause(fieldTypesById.get(rule.fieldId)!, rule));
+
+  return clauses.length > 0 ? { projectId, AND: clauses } : { projectId };
+}
+
+/** Same as buildNoteFilterClause but for Insight's fieldValues relation. */
+export function buildInsightFilterClause(
+  fieldType: FieldType,
+  rule: FilterRule,
+): Prisma.InsightWhereInput {
+  if (rule.operator === "isEmpty") {
+    return { fieldValues: { none: { fieldId: rule.fieldId } } };
+  }
+  return {
+    fieldValues: {
+      some: {
+        fieldId: rule.fieldId,
+        ...buildFieldValueMatch(fieldType, rule),
+      } as Prisma.InsightFieldValueWhereInput,
+    },
+  };
+}
+
+/** Same as buildNoteWhere but for the Insight entity. */
+export function buildInsightWhere(
+  projectId: string,
+  rules: FilterRule[],
+  fieldTypesById: Map<string, FieldType>,
+): Prisma.InsightWhereInput {
+  const clauses = rules
+    .filter((rule) => fieldTypesById.has(rule.fieldId))
+    .map((rule) => buildInsightFilterClause(fieldTypesById.get(rule.fieldId)!, rule));
 
   return clauses.length > 0 ? { projectId, AND: clauses } : { projectId };
 }

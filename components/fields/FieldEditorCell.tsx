@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TagBadge } from "@/components/tags/TagBadge";
-import { setNoteFieldValue, type FieldValueInput } from "@/actions/fieldValues";
+import type { FieldValueInput } from "@/lib/fieldValueTypes";
 import type { FieldType } from "@/lib/generated/prisma/client";
 
 export type FieldOption = { id: string; label: string; color: string };
@@ -26,26 +26,24 @@ export interface FieldEditorCellValue {
 }
 
 export function FieldEditorCell({
-  noteId,
-  fieldId,
   type,
   options,
   teamMembers,
   value,
+  onSubmit,
 }: {
-  noteId: string;
-  fieldId: string;
   type: FieldType;
   options: FieldOption[];
   teamMembers: TeamMemberOption[];
   value: FieldEditorCellValue;
+  onSubmit: (input: FieldValueInput) => Promise<void>;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
   function submit(input: FieldValueInput) {
     startTransition(async () => {
-      await setNoteFieldValue(noteId, fieldId, input);
+      await onSubmit(input);
       router.refresh();
     });
   }

@@ -2,14 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  useEditor,
-  useEditorState,
-  EditorContent,
-  type JSONContent,
-} from "@tiptap/react";
+import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Highlighter } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { updateNoteContent } from "@/actions/notes";
 import { createHighlight } from "@/actions/highlights";
 import { HighlightMark } from "@/components/editor/extensions/highlightMark";
@@ -74,13 +72,6 @@ export function NoteEditor({
     },
   });
 
-  const { canHighlight } = useEditorState({
-    editor,
-    selector: ({ editor }) => ({
-      canHighlight: !!editor && !editor.state.selection.empty,
-    }),
-  }) ?? { canHighlight: false };
-
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -112,7 +103,7 @@ export function NoteEditor({
     const highlightId = crypto.randomUUID();
     const clip = findTranscriptClipRange(editor.state.doc, from, to);
 
-    editor.chain().focus().setHighlightMark(highlightId).run();
+    editor.chain().focus().setHighlightMark(highlightId).setTextSelection(to).run();
     await saveNow(editor.getJSON());
     await createHighlight(
       noteId,
@@ -135,15 +126,17 @@ export function NoteEditor({
     <SpeakerMapContext.Provider value={speakerMaps ?? new Map()}>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <EditorToolbar
-            editor={editor}
-            canHighlight={canHighlight}
-            onAddHighlight={handleAddHighlight}
-          />
+          <EditorToolbar editor={editor} showHighlightButton={false} />
           <span className="text-xs text-muted-foreground">
             {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
           </span>
         </div>
+        <BubbleMenu editor={editor} className="flex rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+          <Button type="button" variant="ghost" size="sm" onClick={handleAddHighlight}>
+            <Highlighter data-icon="inline-start" />
+            Highlight
+          </Button>
+        </BubbleMenu>
         <EditorContent editor={editor} />
       </div>
     </SpeakerMapContext.Provider>

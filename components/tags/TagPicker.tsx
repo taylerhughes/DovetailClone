@@ -12,7 +12,12 @@ import {
 import { TagBadge } from "./TagBadge";
 import { cn } from "@/lib/utils";
 
-export type TagOption = { id: string; name: string; color: string };
+export type TagOption = {
+  id: string;
+  name: string;
+  color: string;
+  parentId?: string | null;
+};
 
 export function TagPicker({
   allTags,
@@ -41,6 +46,32 @@ export function TagPicker({
   const exactMatch = allTags.some(
     (t) => t.name.toLowerCase() === query.trim().toLowerCase(),
   );
+
+  // While browsing (no search query), show tags grouped under their parent
+  // with a visual indent; while actively searching, fall back to a flat
+  // list so a matching child isn't hidden behind a non-matching parent.
+  const isBrowsing = query.trim() === "";
+  const orderedWithIndent: { tag: TagOption; indented: boolean }[] = isBrowsing
+    ? (() => {
+        const topLevel = filtered.filter((t) => !t.parentId);
+        const childrenByParentId = new Map<string, TagOption[]>();
+        for (const t of filtered) {
+          if (t.parentId) {
+            childrenByParentId.set(t.parentId, [
+              ...(childrenByParentId.get(t.parentId) ?? []),
+              t,
+            ]);
+          }
+        }
+        return topLevel.flatMap((t) => [
+          { tag: t, indented: false },
+          ...(childrenByParentId.get(t.id) ?? []).map((child) => ({
+            tag: child,
+            indented: true,
+          })),
+        ]);
+      })()
+    : filtered.map((t) => ({ tag: t, indented: false }));
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -71,7 +102,7 @@ export function TagPicker({
             className="mb-1.5"
           />
           <div className="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
-            {filtered.map((tag) => {
+            {orderedWithIndent.map(({ tag, indented }) => {
               const isAssigned = assignedTagIds.includes(tag.id);
               return (
                 <button
@@ -82,7 +113,10 @@ export function TagPicker({
                       isAssigned ? onUnassign(tag.id) : onAssign(tag.id),
                     )
                   }
-                  className="flex items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-muted"
+                  className={cn(
+                    "flex items-center justify-between rounded-md px-2 py-1 text-sm hover:bg-muted",
+                    indented && "ml-4",
+                  )}
                 >
                   <TagBadge name={tag.name} color={tag.color} />
                   {isAssigned && <Check className="size-3.5" />}

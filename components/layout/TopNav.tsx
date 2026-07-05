@@ -13,6 +13,9 @@ export function TopNav() {
       >
         <Search className="size-4" />
         Search
+        <kbd className="rounded border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          ⌘K
+        </kbd>
       </Link>
     </header>
   );

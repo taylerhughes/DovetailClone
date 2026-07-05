@@ -25,13 +25,28 @@ export type FieldOption = { id: string; name: string; type: FieldType };
 
 const GROUPABLE_TYPES: FieldType[] = ["SINGLE_SELECT", "MULTI_SELECT", "PERSON"];
 
-const DEFAULT_OPERATOR: Record<FieldType, FilterOperator> = {
-  TEXT: "contains",
-  NUMBER: "equals",
-  DATE: "equals",
-  SINGLE_SELECT: "in",
-  MULTI_SELECT: "in",
-  PERSON: "in",
+// "equals" (not "in") is used for select/person types here because the
+// filter builder only ever lets you pick a single value — buildFieldValueMatch
+// treats "equals" and "in" identically for those types, but only "equals"
+// takes a plain (non-array) value for PERSON, which is what this UI produces.
+const OPERATORS_BY_TYPE: Record<FieldType, FilterOperator[]> = {
+  TEXT: ["contains", "equals", "isEmpty"],
+  NUMBER: ["equals", "gt", "lt", "isEmpty"],
+  DATE: ["equals", "before", "after", "isEmpty"],
+  SINGLE_SELECT: ["equals", "isEmpty"],
+  MULTI_SELECT: ["equals", "isEmpty"],
+  PERSON: ["equals", "isEmpty"],
+};
+
+const OPERATOR_LABELS: Record<FilterOperator, string> = {
+  equals: "is",
+  contains: "contains",
+  gt: "is greater than",
+  lt: "is less than",
+  before: "is before",
+  after: "is after",
+  isEmpty: "is empty",
+  in: "is any of",
 };
 
 export function ViewConfigPanel({
@@ -58,6 +73,7 @@ export function ViewConfigPanel({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [newFilterFieldId, setNewFilterFieldId] = useState("");
+  const [newFilterOperator, setNewFilterOperator] = useState<FilterOperator | "">("");
   const [newFilterValue, setNewFilterValue] = useState("");
 
   function apply(config: Parameters<typeof updateViewConfig>[1]) {
@@ -68,6 +84,14 @@ export function ViewConfigPanel({
   }
 
   const newFilterField = fields.find((f) => f.id === newFilterFieldId);
+  const availableOperators = newFilterField ? OPERATORS_BY_TYPE[newFilterField.type] : [];
+
+  function handleFieldChange(fieldId: string) {
+    setNewFilterFieldId(fieldId);
+    const field = fields.find((f) => f.id === fieldId);
+    setNewFilterOperator(field ? OPERATORS_BY_TYPE[field.type][0] : "");
+    setNewFilterValue("");
+  }
 
   return (
     <Popover>
@@ -177,10 +201,13 @@ export function ViewConfigPanel({
                 className="flex items-center justify-between rounded-md bg-muted px-2 py-1 text-xs"
               >
                 <span>
-                  {field?.name ?? "Unknown field"} {rule.operator}{" "}
-                  {Array.isArray(rule.value)
-                    ? rule.value.join(", ")
-                    : String(rule.value)}
+                  {field?.name ?? "Unknown field"} {OPERATOR_LABELS[rule.operator]}
+                  {rule.operator !== "isEmpty" && (
+                    <>
+                      {" "}
+                      {Array.isArray(rule.value) ? rule.value.join(", ") : String(rule.value)}
+                    </>
+                  )}
                 </span>
                 <button
                   aria-label="Remove filter"
@@ -196,9 +223,11 @@ export function ViewConfigPanel({
             );
           })}
           <div className="flex gap-1.5">
-            <Select value={newFilterFieldId} onValueChange={(v) => setNewFilterFieldId(v ?? "")}>
-              <SelectTrigger className="w-1/2">
-                <SelectValue placeholder="Field" />
+            <Select value={newFilterFieldId} onValueChange={(v) => handleFieldChange(v ?? "")}>
+              <SelectTrigger className="w-full" aria-label="Filter field">
+                <SelectValue placeholder="Field">
+                  {(v: string) => fields.find((f) => f.id === v)?.name ?? "Field"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {fields.map((f) => (
@@ -208,59 +237,87 @@ export function ViewConfigPanel({
                 ))}
               </SelectContent>
             </Select>
-            {newFilterField &&
-            (newFilterField.type === "SINGLE_SELECT" ||
-              newFilterField.type === "MULTI_SELECT") ? (
-              <Select value={newFilterValue} onValueChange={(v) => setNewFilterValue(v ?? "")}>
-                <SelectTrigger className="w-1/2">
-                  <SelectValue placeholder="Value" />
+            {newFilterField && (
+              <Select
+                value={newFilterOperator}
+                onValueChange={(v) => {
+                  setNewFilterOperator((v ?? "") as FilterOperator | "");
+                  setNewFilterValue("");
+                }}
+              >
+                <SelectTrigger className="w-full" aria-label="Filter operator">
+                  <SelectValue>
+                    {(v: FilterOperator) => OPERATOR_LABELS[v]}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {(fieldOptionsById.get(newFilterField.id) ?? []).map((o) => (
-                    <SelectItem key={o.id} value={o.id}>
-                      {o.label}
+                  {availableOperators.map((op) => (
+                    <SelectItem key={op} value={op}>
+                      {OPERATOR_LABELS[op]}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            ) : newFilterField?.type === "PERSON" ? (
-              <Select value={newFilterValue} onValueChange={(v) => setNewFilterValue(v ?? "")}>
-                <SelectTrigger className="w-1/2">
-                  <SelectValue placeholder="Value" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input
-                className="w-1/2"
-                placeholder="Value"
-                value={newFilterValue}
-                onChange={(e) => setNewFilterValue(e.target.value)}
-              />
             )}
           </div>
+          {newFilterField && newFilterOperator && newFilterOperator !== "isEmpty" && (
+            <div className="flex gap-1.5">
+              {newFilterField.type === "SINGLE_SELECT" ||
+              newFilterField.type === "MULTI_SELECT" ? (
+                <Select value={newFilterValue} onValueChange={(v) => setNewFilterValue(v ?? "")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(fieldOptionsById.get(newFilterField.id) ?? []).map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : newFilterField.type === "PERSON" ? (
+                <Select value={newFilterValue} onValueChange={(v) => setNewFilterValue(v ?? "")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Value" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamMembers.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  className="w-full"
+                  type={newFilterField.type === "NUMBER" ? "number" : newFilterField.type === "DATE" ? "date" : "text"}
+                  placeholder="Value"
+                  value={newFilterValue}
+                  onChange={(e) => setNewFilterValue(e.target.value)}
+                />
+              )}
+            </div>
+          )}
           <Button
             size="sm"
             variant="outline"
-            disabled={!newFilterFieldId || !newFilterValue}
+            disabled={
+              !newFilterFieldId ||
+              !newFilterOperator ||
+              (newFilterOperator !== "isEmpty" && !newFilterValue)
+            }
             onClick={() => {
-              if (!newFilterField) return;
+              if (!newFilterField || !newFilterOperator) return;
               const rule: FilterRule = {
                 fieldId: newFilterField.id,
-                operator: DEFAULT_OPERATOR[newFilterField.type],
-                value:
-                  newFilterField.type === "MULTI_SELECT"
-                    ? [newFilterValue]
-                    : newFilterValue,
+                operator: newFilterOperator,
+                ...(newFilterOperator === "isEmpty" ? {} : { value: newFilterValue }),
               };
               apply({ filterConfig: [...filterConfig, rule] });
               setNewFilterFieldId("");
+              setNewFilterOperator("");
               setNewFilterValue("");
             }}
           >

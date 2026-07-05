@@ -40,6 +40,18 @@ export async function renameTag(tagId: string, name: string) {
   revalidatePath(`/projects/${tag.projectId}/tags`);
 }
 
+export async function setTagParent(tagId: string, parentId: string | null) {
+  if (parentId === tagId) throw new Error("A tag cannot be its own parent");
+
+  const tag = await db.tag.update({
+    where: { id: tagId },
+    data: { parentId },
+    select: { projectId: true },
+  });
+
+  revalidatePath(`/projects/${tag.projectId}/tags`);
+}
+
 export async function recolorTag(tagId: string, color: string) {
   const tag = await db.tag.update({
     where: { id: tagId },

@@ -104,3 +104,37 @@ export function groupByField<T extends { fieldValues: FieldValueLike[] }>(
 
   return [...columns.values(), uncategorized];
 }
+
+/**
+ * Groups records by tag membership (e.g. Highlights, which have no Field
+ * values of their own — Tags are their natural grouping axis). A record
+ * with no tags lands in a synthetic "Untagged" column; a record with
+ * several tags fans out into every matching column, same as a
+ * MULTI_SELECT field board.
+ */
+export function groupByTag<T extends { tagIds: string[] }>(
+  records: T[],
+  tags: { id: string; name: string; color: string }[],
+): GroupColumn<T>[] {
+  const columns = new Map<string, GroupColumn<T>>(
+    tags.map((t) => [t.id, { key: t.id, label: t.name, color: t.color, records: [] }]),
+  );
+  const untagged: GroupColumn<T> = {
+    key: "__uncategorized__",
+    label: "Untagged",
+    color: null,
+    records: [],
+  };
+
+  for (const record of records) {
+    if (record.tagIds.length === 0) {
+      untagged.records.push(record);
+      continue;
+    }
+    for (const tagId of record.tagIds) {
+      columns.get(tagId)?.records.push(record);
+    }
+  }
+
+  return [...columns.values(), untagged];
+}

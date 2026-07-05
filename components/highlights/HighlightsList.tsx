@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { HighlightRow } from "@/components/highlights/HighlightRow";
 import { DraftInsightButton } from "@/components/ai/DraftInsightButton";
+import { cn } from "@/lib/utils";
 import type { TagOption } from "@/components/tags/TagPicker";
 
 export interface HighlightListItem {
@@ -20,11 +21,13 @@ export function HighlightsList({
   highlights,
   allTags,
   aiEnabled,
+  layout = "list",
 }: {
   projectId: string;
   highlights: HighlightListItem[];
   allTags: TagOption[];
   aiEnabled: boolean;
+  layout?: "list" | "grid";
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -38,7 +41,14 @@ export function HighlightsList({
   }
 
   return (
-    <div className="flex flex-col gap-2 pb-16">
+    <div
+      className={cn(
+        "pb-16",
+        layout === "grid"
+          ? "grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          : "flex flex-col gap-2",
+      )}
+    >
       {highlights.map((h) => (
         <div key={h.id} className="flex items-start gap-2">
           {aiEnabled && (

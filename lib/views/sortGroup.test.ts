@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sortByField, groupByField, type FieldValueLike } from "./sortGroup";
+import { sortByField, groupByField, groupByTag, type FieldValueLike } from "./sortGroup";
 
 function fv(overrides: Partial<FieldValueLike> & { fieldId: string }): FieldValueLike {
   return {
@@ -82,5 +82,40 @@ describe("groupByField", () => {
     expect(byKey.u1).toEqual(["a"]);
     expect(byKey.u2).toEqual([]);
     expect(byKey.__uncategorized__).toEqual(["b"]);
+  });
+});
+
+describe("groupByTag", () => {
+  const tags = [
+    { id: "t1", name: "Confusion", color: "#fff" },
+    { id: "t2", name: "Positive", color: "#000" },
+  ];
+
+  it("fans a multi-tagged record out into every matching column", () => {
+    const records = [
+      { id: "a", tagIds: ["t1", "t2"] },
+      { id: "b", tagIds: ["t1"] },
+      { id: "c", tagIds: [] },
+    ];
+    const groups = groupByTag(records, tags);
+    const byKey = Object.fromEntries(groups.map((g) => [g.key, g.records.map((r) => r.id)]));
+    expect(byKey.t1).toEqual(["a", "b"]);
+    expect(byKey.t2).toEqual(["a"]);
+    expect(byKey.__uncategorized__).toEqual(["c"]);
+  });
+
+  it("labels the untagged column 'Untagged'", () => {
+    const groups = groupByTag([{ id: "a", tagIds: [] }], tags);
+    const untagged = groups.find((g) => g.key === "__uncategorized__");
+    expect(untagged?.label).toBe("Untagged");
+  });
+
+  it("ignores tag ids that don't match any known tag", () => {
+    const groups = groupByTag([{ id: "a", tagIds: ["deleted-tag"] }], tags);
+    const byKey = Object.fromEntries(groups.map((g) => [g.key, g.records.map((r) => r.id)]));
+    expect(byKey.t1).toEqual([]);
+    expect(byKey.t2).toEqual([]);
+    // a record whose only tag no longer exists isn't retroactively "untagged"
+    expect(byKey.__uncategorized__).toEqual([]);
   });
 });

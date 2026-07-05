@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -119,8 +120,16 @@ export function TagManager({
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Delete tag"
+          aria-label="View highlights and reels"
           className="ml-auto"
+          render={<Link href={`/projects/${projectId}/tags/${tag.id}`} />}
+        >
+          <Video />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          aria-label="Delete tag"
           onClick={() =>
             startTransition(async () => {
               await deleteTag(tag.id);

@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { organization } from "better-auth/plugins";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { db } from "@/lib/db";
 
@@ -9,6 +10,23 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  plugins: [
+    organization({
+      // Teams are a separate sub-feature of this plugin (project-team
+      // groupings within an org) that we don't use — this app already has
+      // its own unrelated TeamMember model (assignee labels for the PERSON
+      // field type), so leaving teams disabled avoids generating a second,
+      // colliding Team/TeamMember model.
+      teams: { enabled: false },
+      // No email-sending integration exists in this app. The inviter's own
+      // org settings page shows the invite as a copyable accept-link
+      // instead, so this hook only needs to log for local dev visibility.
+      async sendInvitationEmail(data) {
+        const url = `${process.env.BETTER_AUTH_URL ?? "http://localhost:3000"}/organizations/accept-invitation?id=${data.id}`;
+        console.log(`[organization] invite ${data.email} to ${data.organization.name}: ${url}`);
+      },
+    }),
+  ],
   socialProviders: {
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
       ? {

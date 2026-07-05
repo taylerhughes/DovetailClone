@@ -23,6 +23,10 @@ model User {
   sessions      Session[]
   accounts      Account[]
   projects      Project[]
+  projectShares ProjectShare[]
+
+  members     Member[]
+  invitations Invitation[]
 
   @@unique([email])
   @@map("user")
@@ -38,6 +42,8 @@ model Session {
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  activeOrganizationId String?
 
   @@unique([token])
   @@index([userId])
@@ -78,6 +84,11 @@ model Verification {
 
 // ── Core hierarchy ─────────────────────────────────────────────
 
+enum ProjectRole {
+  VIEWER
+  EDITOR
+}
+
 model Project {
   id          String   @id @default(cuid())
   name        String
@@ -88,6 +99,20 @@ model Project {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Nullable: a project can be purely personal, outside any organization.
+  // Chosen at creation time and immutable afterward (no "move to org" in v1).
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  orgShareEnabled Boolean     @default(false)
+  orgShareRole    ProjectRole @default(VIEWER)
+
+  shareLinkEnabled Boolean     @default(false)
+  shareLinkToken   String?     @unique
+  shareLinkRole    ProjectRole @default(VIEWER)
+
+  shares ProjectShare[]
+
   notes          Note[]
   insights       Insight[]
   tags           Tag[]
@@ -97,19 +122,33 @@ model Project {
   highlightReels HighlightReel[]
 
   @@index([userId])
+  @@index([organizationId])
+}
+
+model ProjectShare {
+  id        String      @id @default(cuid())
+  projectId String
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ProjectRole
+  createdAt DateTime    @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
 }
 
 model Note {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title     String   @default("Untitled")
-  content   Json
-  plainText String   @default("")
+  id           String                   @id @default(cuid())
+  projectId    String
+  project      Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String                   @default("Untitled")
+  content      Json
+  plainText    String                   @default("")
   /// generated column populated by migration SQL, not written to directly
   searchVector Unsupported("tsvector")?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   attachments    Attachment[]
   highlights     Highlight[]
@@ -156,18 +195,18 @@ model Attachment {
 }
 
 model Highlight {
-  id        String   @id @default(cuid())
-  noteId    String
-  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  markId    String?
-  wholeNote Boolean  @default(false)
-  quote     String
-  orphaned  Boolean  @default(false)
-  order     Int      @default(0)
+  id           String                   @id @default(cuid())
+  noteId       String
+  note         Note                     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  markId       String?
+  wholeNote    Boolean                  @default(false)
+  quote        String
+  orphaned     Boolean                  @default(false)
+  order        Int                      @default(0)
   /// generated column populated by migration SQL, not written to directly
   searchVector Unsupported("tsvector")?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   attachmentId String?
   attachment   Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
@@ -183,16 +222,16 @@ model Highlight {
 }
 
 model Insight {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title     String   @default("Untitled insight")
-  content   Json
-  plainText String   @default("")
+  id           String                   @id @default(cuid())
+  projectId    String
+  project      Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String                   @default("Untitled insight")
+  content      Json
+  plainText    String                   @default("")
   /// generated column populated by migration SQL, not written to directly
   searchVector Unsupported("tsvector")?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   highlightLinks InsightHighlight[]
   fieldValues    InsightFieldValue[]
@@ -295,11 +334,11 @@ model Field {
   appliesTo FieldAppliesTo @default(BOTH)
   order     Int            @default(0)
 
-  options       FieldOption[]
-  noteValues    NoteFieldValue[]
-  insightValues InsightFieldValue[]
-  viewsGroupedBy View[] @relation("GroupByField")
-  viewsSortedBy  View[] @relation("SortField")
+  options        FieldOption[]
+  noteValues     NoteFieldValue[]
+  insightValues  InsightFieldValue[]
+  viewsGroupedBy View[]              @relation("GroupByField")
+  viewsSortedBy  View[]              @relation("SortField")
 
   @@unique([projectId, name])
 }
@@ -328,16 +367,16 @@ model TeamMember {
 }
 
 model NoteFieldValue {
-  id              String    @id @default(cuid())
+  id              String                 @id @default(cuid())
   noteId          String
-  note            Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  note            Note                   @relation(fields: [noteId], references: [id], onDelete: Cascade)
   fieldId         String
-  field           Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  field           Field                  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   valueText       String?
   valueNumber     Float?
   valueDate       DateTime?
   teamMemberId    String?
-  teamMember      TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  teamMember      TeamMember?            @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
   selectedOptions NoteFieldValueOption[]
 
   @@unique([noteId, fieldId])
@@ -353,16 +392,16 @@ model NoteFieldValueOption {
 }
 
 model InsightFieldValue {
-  id              String    @id @default(cuid())
+  id              String                    @id @default(cuid())
   insightId       String
-  insight         Insight   @relation(fields: [insightId], references: [id], onDelete: Cascade)
+  insight         Insight                   @relation(fields: [insightId], references: [id], onDelete: Cascade)
   fieldId         String
-  field           Field     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  field           Field                     @relation(fields: [fieldId], references: [id], onDelete: Cascade)
   valueText       String?
   valueNumber     Float?
   valueDate       DateTime?
   teamMemberId    String?
-  teamMember      TeamMember? @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
+  teamMember      TeamMember?               @relation(fields: [teamMemberId], references: [id], onDelete: SetNull)
   selectedOptions InsightFieldValueOption[]
 
   @@unique([insightId, fieldId])
@@ -434,4 +473,50 @@ model CanvasCardPosition {
   zIndex      Int               @default(0)
 
   @@unique([viewId, subjectType, subjectId])
+}
+
+model Organization {
+  id          String       @id
+  name        String
+  slug        String
+  logo        String?
+  createdAt   DateTime
+  metadata    String?
+  members     Member[]
+  invitations Invitation[]
+  projects    Project[]
+
+  @@unique([slug])
+  @@map("organization")
+}
+
+model Member {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("member")
+  createdAt      DateTime
+
+  @@index([organizationId])
+  @@index([userId])
+  @@map("member")
+}
+
+model Invitation {
+  id             String       @id
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  inviterId      String
+  user           User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
 }

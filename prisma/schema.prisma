@@ -19,12 +19,13 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  notes       Note[]
-  insights    Insight[]
-  tags        Tag[]
-  fields      Field[]
-  views       View[]
-  teamMembers TeamMember[]
+  notes          Note[]
+  insights       Insight[]
+  tags           Tag[]
+  fields         Field[]
+  views          View[]
+  teamMembers    TeamMember[]
+  highlightReels HighlightReel[]
 }
 
 model Note {
@@ -54,6 +55,14 @@ enum AttachmentKind {
   FILE
 }
 
+enum TranscriptionStatus {
+  NONE
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
 model Attachment {
   id           String         @id @default(cuid())
   noteId       String
@@ -64,6 +73,13 @@ model Attachment {
   sizeBytes    Int
   storageKey   String
   createdAt    DateTime       @default(now())
+
+  transcriptionStatus TranscriptionStatus @default(NONE)
+  transcriptionError  String?
+  /// { [speakerLabel: string]: teamMemberId }
+  speakerMap          Json?
+
+  clipHighlights Highlight[]
 
   @@index([noteId])
 }
@@ -82,11 +98,17 @@ model Highlight {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  attachmentId String?
+  attachment   Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  clipStartSec Float?
+  clipEndSec   Float?
+
   tagAssignments HighlightTag[]
   insightLinks   InsightHighlight[]
 
   @@unique([noteId, markId])
   @@index([noteId])
+  @@index([attachmentId])
 }
 
 model Insight {
@@ -130,6 +152,7 @@ model Tag {
 
   noteAssignments      NoteTag[]
   highlightAssignments HighlightTag[]
+  highlightReels       HighlightReel[]
 
   @@unique([projectId, name])
 }
@@ -150,6 +173,29 @@ model HighlightTag {
   tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([highlightId, tagId])
+}
+
+enum HighlightReelStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+model HighlightReel {
+  id           String              @id @default(cuid())
+  projectId    String
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tagId        String
+  tag          Tag                 @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  name         String
+  status       HighlightReelStatus @default(PENDING)
+  storageKey   String?
+  errorMessage String?
+  createdAt    DateTime            @default(now())
+
+  @@index([tagId])
+  @@index([projectId])
 }
 
 // ── Fields (custom metadata) ────────────────────────────────────

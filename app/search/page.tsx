@@ -2,15 +2,17 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAll } from "@/lib/search";
+import { requireUser } from "@/lib/auth/session";
 
 export default async function SearchPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  const user = await requireUser();
   const { q } = await searchParams;
   const query = q ?? "";
-  const results = query.trim() ? await searchAll(query) : null;
+  const results = query.trim() ? await searchAll(query, user.id) : null;
   const totalCount = results
     ? results.notes.length + results.highlights.length + results.insights.length
     : 0;

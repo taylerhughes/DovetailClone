@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { ProjectSettings } from "@/components/projects/ProjectSettings";
 import { ProjectTabs } from "@/components/projects/ProjectTabs";
+import { requireUser } from "@/lib/auth/session";
 
 export default async function ProjectLayout({
   children,
@@ -12,9 +13,10 @@ export default async function ProjectLayout({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
+  const user = await requireUser();
   const project = await db.project.findUnique({ where: { id: projectId } });
 
-  if (!project) {
+  if (!project || project.userId !== user.id) {
     notFound();
   }
 

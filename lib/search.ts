@@ -33,7 +33,7 @@ export interface SearchResults {
 
 const RESULT_LIMIT = 20;
 
-export async function searchAll(query: string): Promise<SearchResults> {
+export async function searchAll(query: string, userId: string): Promise<SearchResults> {
   const trimmed = query.trim();
   if (!trimmed) {
     return { notes: [], highlights: [], insights: [] };
@@ -45,6 +45,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
       FROM "Note" n
       JOIN "Project" p ON p.id = n."projectId"
       WHERE n."searchVector" @@ plainto_tsquery('english', ${trimmed})
+        AND p."userId" = ${userId}
       ORDER BY ts_rank(n."searchVector", plainto_tsquery('english', ${trimmed})) DESC
       LIMIT ${RESULT_LIMIT}
     `,
@@ -53,6 +54,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
       FROM "Insight" i
       JOIN "Project" p ON p.id = i."projectId"
       WHERE i."searchVector" @@ plainto_tsquery('english', ${trimmed})
+        AND p."userId" = ${userId}
       ORDER BY ts_rank(i."searchVector", plainto_tsquery('english', ${trimmed})) DESC
       LIMIT ${RESULT_LIMIT}
     `,
@@ -63,6 +65,7 @@ export async function searchAll(query: string): Promise<SearchResults> {
       JOIN "Note" n ON n.id = h."noteId"
       JOIN "Project" p ON p.id = n."projectId"
       WHERE h."searchVector" @@ plainto_tsquery('english', ${trimmed})
+        AND p."userId" = ${userId}
       ORDER BY ts_rank(h."searchVector", plainto_tsquery('english', ${trimmed})) DESC
       LIMIT ${RESULT_LIMIT}
     `,

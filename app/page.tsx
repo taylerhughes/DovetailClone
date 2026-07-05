@@ -3,17 +3,21 @@ import { CreateProjectDialog } from "@/components/projects/CreateProjectDialog";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { CapNotice } from "@/components/ui/CapNotice";
 import { LIST_RESULT_CAP } from "@/lib/constants";
+import { requireUser } from "@/lib/auth/session";
 
 export default async function Home() {
+  const user = await requireUser();
+
   const [projects, totalProjects] = await Promise.all([
     db.project.findMany({
+      where: { userId: user.id },
       orderBy: { updatedAt: "desc" },
       take: LIST_RESULT_CAP,
       include: {
         _count: { select: { notes: true, insights: true } },
       },
     }),
-    db.project.count(),
+    db.project.count({ where: { userId: user.id } }),
   ]);
 
   return (

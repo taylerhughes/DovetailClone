@@ -60,7 +60,9 @@ export function ProjectSettings({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon-sm" aria-label="Project settings" />}
+        >
           <MoreVertical />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

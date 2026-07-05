@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectViewAccess, hasProjectEditAccess } from "@/lib/auth/authorize";
 
 export async function GET(
   request: Request,
@@ -19,7 +19,7 @@ export async function GET(
     where: { id },
     include: { note: { select: { projectId: true } } },
   });
-  if (!attachment || !(await hasProjectAccess(attachment.note.projectId, user.id))) {
+  if (!attachment || !(await hasProjectViewAccess(attachment.note.projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
@@ -76,7 +76,7 @@ export async function DELETE(
     where: { id },
     include: { note: { select: { projectId: true } } },
   });
-  if (!attachment || !(await hasProjectAccess(attachment.note.projectId, user.id))) {
+  if (!attachment || !(await hasProjectEditAccess(attachment.note.projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 

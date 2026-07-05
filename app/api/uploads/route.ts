@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectEditAccess } from "@/lib/auth/authorize";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 // Video/audio need a much higher ceiling than documents/images — a research
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     if (!note) {
       return NextResponse.json({ error: "note not found" }, { status: 404 });
     }
-    if (!(await hasProjectAccess(note.projectId, user.id))) {
+    if (!(await hasProjectEditAccess(note.projectId, user.id))) {
       return NextResponse.json({ error: "note not found" }, { status: 404 });
     }
 

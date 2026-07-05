@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isAiEnabled } from "@/lib/ai/client";
 import { summarizeNote } from "@/lib/ai/summarize";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectViewAccess } from "@/lib/auth/authorize";
 
 const bodySchema = z.object({
   noteId: z.string(),
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     where: { id: parsed.data.noteId },
     select: { plainText: true, projectId: true },
   });
-  if (!note || !(await hasProjectAccess(note.projectId, user.id))) {
+  if (!note || !(await hasProjectViewAccess(note.projectId, user.id))) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });
   }
 

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { stripHighlightMark } from "@/lib/editor/extractIds";
 import { docToPlainText } from "@/lib/editor/plainText";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { JSONContent } from "@tiptap/react";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
@@ -25,7 +25,7 @@ export async function createHighlight(
     where: { id: noteId },
     select: { projectId: true },
   });
-  await requireProjectAccess(note.projectId, user.id);
+  await requireProjectEditAccess(note.projectId, user.id);
 
   const order = await db.highlight.count({ where: { noteId } });
 
@@ -42,7 +42,7 @@ export async function createHighlight(
 export async function createWholeNoteHighlight(noteId: string) {
   const user = await requireUser();
   const note = await db.note.findUniqueOrThrow({ where: { id: noteId } });
-  await requireProjectAccess(note.projectId, user.id);
+  await requireProjectEditAccess(note.projectId, user.id);
 
   const existing = await db.highlight.findFirst({
     where: { noteId, wholeNote: true },
@@ -69,7 +69,7 @@ export async function deleteHighlight(highlightId: string) {
     where: { id: highlightId },
     include: { note: { select: { id: true, projectId: true, content: true } } },
   });
-  await requireProjectAccess(highlight.note.projectId, user.id);
+  await requireProjectEditAccess(highlight.note.projectId, user.id);
 
   if (highlight.markId && !highlight.wholeNote) {
     const nextContent = stripHighlightMark(
@@ -100,7 +100,7 @@ async function getHighlightNoteRef(highlightId: string) {
 export async function addHighlightTag(highlightId: string, tagId: string) {
   const user = await requireUser();
   const highlight = await getHighlightNoteRef(highlightId);
-  await requireProjectAccess(highlight.note.projectId, user.id);
+  await requireProjectEditAccess(highlight.note.projectId, user.id);
 
   await db.highlightTag.upsert({
     where: { highlightId_tagId: { highlightId, tagId } },
@@ -113,7 +113,7 @@ export async function addHighlightTag(highlightId: string, tagId: string) {
 export async function removeHighlightTag(highlightId: string, tagId: string) {
   const user = await requireUser();
   const highlight = await getHighlightNoteRef(highlightId);
-  await requireProjectAccess(highlight.note.projectId, user.id);
+  await requireProjectEditAccess(highlight.note.projectId, user.id);
 
   await db.highlightTag.delete({
     where: { highlightId_tagId: { highlightId, tagId } },

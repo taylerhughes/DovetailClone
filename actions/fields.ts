@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { colorForIndex } from "@/lib/palette";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { FieldAppliesTo, FieldType } from "@/lib/generated/prisma/client";
 
 async function revalidateProjectFields(projectId: string) {
@@ -17,7 +17,7 @@ async function requireFieldAccess(fieldId: string, userId: string) {
     where: { id: fieldId },
     select: { projectId: true },
   });
-  await requireProjectAccess(field.projectId, userId);
+  await requireProjectEditAccess(field.projectId, userId);
   return field;
 }
 
@@ -26,7 +26,7 @@ async function requireFieldOptionAccess(optionId: string, userId: string) {
     where: { id: optionId },
     select: { field: { select: { projectId: true } } },
   });
-  await requireProjectAccess(option.field.projectId, userId);
+  await requireProjectEditAccess(option.field.projectId, userId);
   return option;
 }
 
@@ -37,7 +37,7 @@ export async function createField(
   appliesTo: FieldAppliesTo = "BOTH",
 ) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Field name is required");
@@ -86,7 +86,7 @@ export async function addFieldOption(fieldId: string, label: string) {
     where: { id: fieldId },
     select: { projectId: true, _count: { select: { options: true } } },
   });
-  await requireProjectAccess(field.projectId, user.id);
+  await requireProjectEditAccess(field.projectId, user.id);
 
   const option = await db.fieldOption.create({
     data: {

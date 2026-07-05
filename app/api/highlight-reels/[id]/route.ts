@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectViewAccess } from "@/lib/auth/authorize";
 
 export async function GET(
   request: Request,
@@ -19,7 +19,7 @@ export async function GET(
     !reel ||
     reel.status !== "DONE" ||
     !reel.storageKey ||
-    !(await hasProjectAccess(reel.projectId, user.id))
+    !(await hasProjectViewAccess(reel.projectId, user.id))
   ) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }

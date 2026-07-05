@@ -6,13 +6,13 @@ import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
 import { syncHighlightsForNote } from "@/lib/highlights/sync";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { JSONContent } from "@tiptap/react";
 
 export async function createNote(projectId: string) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const note = await db.note.create({
     data: {
@@ -33,7 +33,7 @@ export async function updateNoteTitle(noteId: string, title: string) {
     where: { id: noteId },
     select: { projectId: true },
   });
-  await requireProjectAccess(existing.projectId, user.id);
+  await requireProjectEditAccess(existing.projectId, user.id);
 
   const note = await db.note.update({
     where: { id: noteId },
@@ -53,7 +53,7 @@ export async function updateNoteContent(
     where: { id: noteId },
     select: { projectId: true },
   });
-  await requireProjectAccess(existing.projectId, user.id);
+  await requireProjectEditAccess(existing.projectId, user.id);
 
   const plainText = docToPlainText(content as never);
 
@@ -74,7 +74,7 @@ export async function deleteNote(noteId: string) {
     where: { id: noteId },
     select: { projectId: true },
   });
-  await requireProjectAccess(existing.projectId, user.id);
+  await requireProjectEditAccess(existing.projectId, user.id);
 
   const note = await db.note.delete({
     where: { id: noteId },

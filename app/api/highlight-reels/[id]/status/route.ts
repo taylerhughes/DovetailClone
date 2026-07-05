@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectViewAccess } from "@/lib/auth/authorize";
 
 export async function GET(
   _request: Request,
@@ -17,7 +17,7 @@ export async function GET(
     where: { id },
     select: { status: true, errorMessage: true, projectId: true },
   });
-  if (!reel || !(await hasProjectAccess(reel.projectId, user.id))) {
+  if (!reel || !(await hasProjectViewAccess(reel.projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 

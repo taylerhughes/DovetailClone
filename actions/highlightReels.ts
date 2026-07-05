@@ -11,7 +11,7 @@ import { trimClip } from "@/lib/ffmpeg/trim";
 import { concatClips } from "@/lib/ffmpeg/concat";
 import { REEL_ELIGIBLE_HIGHLIGHT_WHERE } from "@/lib/highlightReelEligibility";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 
 export async function createHighlightReel(
   projectId: string,
@@ -19,7 +19,7 @@ export async function createHighlightReel(
   name: string,
 ) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const reel = await db.highlightReel.create({
     data: { projectId, tagId, name: name.trim() || "Untitled reel" },

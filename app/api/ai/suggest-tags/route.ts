@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { isAiEnabled } from "@/lib/ai/client";
 import { suggestTags } from "@/lib/ai/tagging";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectViewAccess } from "@/lib/auth/authorize";
 
 const bodySchema = z.object({
   projectId: z.string(),
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   }
   const { projectId, text } = parsed.data;
 
-  if (!(await hasProjectAccess(projectId, user.id))) {
+  if (!(await hasProjectViewAccess(projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 

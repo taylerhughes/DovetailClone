@@ -6,13 +6,13 @@ import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
 import { extractHighlightEmbedIds } from "@/lib/editor/extractIds";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { JSONContent } from "@tiptap/react";
 
 export async function createInsight(projectId: string) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const insight = await db.insight.create({
     data: {
@@ -32,7 +32,7 @@ async function requireInsightAccess(insightId: string, userId: string) {
     where: { id: insightId },
     select: { projectId: true },
   });
-  await requireProjectAccess(insight.projectId, userId);
+  await requireProjectEditAccess(insight.projectId, userId);
   return insight;
 }
 

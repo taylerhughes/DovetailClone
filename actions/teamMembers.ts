@@ -4,20 +4,20 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { colorForIndex } from "@/lib/palette";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 
 async function requireTeamMemberAccess(memberId: string, userId: string) {
   const member = await db.teamMember.findUniqueOrThrow({
     where: { id: memberId },
     select: { projectId: true },
   });
-  await requireProjectAccess(member.projectId, userId);
+  await requireProjectEditAccess(member.projectId, userId);
   return member;
 }
 
 export async function createTeamMember(projectId: string, name: string) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Name is required");

@@ -6,7 +6,7 @@ import { draftInsightFromHighlights } from "@/lib/ai/summarize";
 import { docToPlainText } from "@/lib/editor/plainText";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth/session";
-import { hasProjectAccess } from "@/lib/auth/authorize";
+import { hasProjectEditAccess } from "@/lib/auth/authorize";
 
 const bodySchema = z.object({
   projectId: z.string(),
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   }
   const { projectId, highlightIds } = parsed.data;
 
-  if (!(await hasProjectAccess(projectId, user.id))) {
+  if (!(await hasProjectEditAccess(projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 

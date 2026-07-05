@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type {
   ViewEntityType,
   ViewLayout,
@@ -24,7 +24,7 @@ function tabPathFor(entityType: ViewEntityType) {
 
 async function requireViewAccess(viewId: string, userId: string) {
   const view = await db.view.findUniqueOrThrow({ where: { id: viewId } });
-  await requireProjectAccess(view.projectId, userId);
+  await requireProjectEditAccess(view.projectId, userId);
   return view;
 }
 
@@ -35,7 +35,7 @@ export async function createView(
   name: string,
 ) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const trimmed = name.trim();
   if (!trimmed) throw new Error("View name is required");

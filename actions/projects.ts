@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import {
+  requireProjectEditAccess,
+  requireProjectOwnerAccess,
+} from "@/lib/auth/authorize";
 
 export async function createProject(formData: FormData) {
   const user = await requireUser();
@@ -25,7 +28,7 @@ export async function createProject(formData: FormData) {
 
 export async function renameProject(projectId: string, name: string) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const trimmed = name.trim();
   if (!trimmed) {
@@ -46,7 +49,7 @@ export async function updateProjectDescription(
   description: string,
 ) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   await db.project.update({
     where: { id: projectId },
@@ -58,7 +61,7 @@ export async function updateProjectDescription(
 
 export async function deleteProject(projectId: string) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectOwnerAccess(projectId, user.id);
 
   await db.project.delete({ where: { id: projectId } });
 

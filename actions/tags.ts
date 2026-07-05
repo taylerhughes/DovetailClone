@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { colorForIndex } from "@/lib/palette";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 
 export async function createTag(
   projectId: string,
@@ -12,7 +12,7 @@ export async function createTag(
   parentId?: string | null,
 ) {
   const user = await requireUser();
-  await requireProjectAccess(projectId, user.id);
+  await requireProjectEditAccess(projectId, user.id);
 
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Tag name is required");
@@ -37,7 +37,7 @@ async function requireTagAccess(tagId: string, userId: string) {
     where: { id: tagId },
     select: { projectId: true, parentId: true },
   });
-  await requireProjectAccess(tag.projectId, userId);
+  await requireProjectEditAccess(tag.projectId, userId);
   return tag;
 }
 

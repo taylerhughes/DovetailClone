@@ -11,7 +11,7 @@ import {
   appendTranscriptToDoc,
 } from "@/lib/transcription/buildTranscriptDoc";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { JSONContent } from "@tiptap/react";
 
@@ -25,7 +25,7 @@ export async function transcribeAttachment(attachmentId: string) {
     where: { id: attachmentId },
     select: { note: { select: { projectId: true } } },
   });
-  await requireProjectAccess(existing.note.projectId, user.id);
+  await requireProjectEditAccess(existing.note.projectId, user.id);
 
   const attachment = await db.attachment.update({
     where: { id: attachmentId },
@@ -53,7 +53,7 @@ export async function setSpeakerMapping(
     where: { id: attachmentId },
     select: { speakerMap: true, noteId: true, note: { select: { projectId: true } } },
   });
-  await requireProjectAccess(attachment.note.projectId, user.id);
+  await requireProjectEditAccess(attachment.note.projectId, user.id);
 
   const speakerMap = { ...(attachment.speakerMap as Record<string, string> | null) };
   if (teamMemberId) {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { CanvasSubjectType } from "@/lib/generated/prisma/client";
 
 async function requireCanvasViewAccess(viewId: string, userId: string) {
@@ -14,7 +14,7 @@ async function requireCanvasViewAccess(viewId: string, userId: string) {
       entityType: true,
     },
   });
-  await requireProjectAccess(view.projectId, userId);
+  await requireProjectEditAccess(view.projectId, userId);
 
   const slug =
     view.entityType === "NOTE"

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
-import { requireProjectAccess } from "@/lib/auth/authorize";
+import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { FieldValueInput } from "@/lib/fieldValueTypes";
 
 async function ensureInsightFieldValue(insightId: string, fieldId: string) {
@@ -24,7 +24,7 @@ export async function setInsightFieldValue(
     where: { id: insightId },
     select: { projectId: true },
   });
-  await requireProjectAccess(insight.projectId, user.id);
+  await requireProjectEditAccess(insight.projectId, user.id);
 
   switch (input.kind) {
     case "TEXT": {

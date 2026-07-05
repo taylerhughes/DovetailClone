@@ -13,7 +13,14 @@ export async function GET(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  const data = await storage.read(attachment.storageKey);
+  let data;
+  try {
+    data = await storage.read(attachment.storageKey);
+  } catch (err) {
+    console.error("attachment read failed", err);
+    return NextResponse.json({ error: "Failed to read attachment" }, { status: 500 });
+  }
+
   const range = request.headers.get("range");
 
   if (range) {
@@ -55,14 +62,19 @@ export async function DELETE(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  await storage.delete(attachment.storageKey);
+  try {
+    await storage.delete(attachment.storageKey);
 
-  const note = await db.attachment.delete({
-    where: { id },
-    select: { note: { select: { id: true, projectId: true } } },
-  });
+    const note = await db.attachment.delete({
+      where: { id },
+      select: { note: { select: { id: true, projectId: true } } },
+    });
 
-  revalidatePath(`/projects/${note.note.projectId}/data/${note.note.id}`);
+    revalidatePath(`/projects/${note.note.projectId}/data/${note.note.id}`);
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("attachment delete failed", err);
+    return NextResponse.json({ error: "Failed to delete attachment" }, { status: 500 });
+  }
 }

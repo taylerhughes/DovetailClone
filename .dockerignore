@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.data
+lib/generated
+coverage
+test-results
+playwright-report
+blob-report
+*.log
+.env
+.env.local

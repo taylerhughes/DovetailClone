@@ -10,6 +10,30 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dovetail -d dovetailclone"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://dovetail:dovetail@postgres:5432/dovetailclone?schema=public"
+      STORAGE_DRIVER: "local"
+      STORAGE_LOCAL_DIR: ".data/uploads"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      ANTHROPIC_MODEL_TAGGING: "${ANTHROPIC_MODEL_TAGGING:-claude-haiku-4-5-20251001}"
+      ANTHROPIC_MODEL_SUMMARIZE: "${ANTHROPIC_MODEL_SUMMARIZE:-claude-sonnet-5}"
+    ports:
+      - "3000:3000"
+    volumes:
+      - app-uploads:/app/.data
 
 volumes:
   postgres-data:
+  app-uploads:

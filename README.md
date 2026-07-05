@@ -1,8 +1,8 @@
 # DovetailClone
 
-A self-hosted clone of the core [Dovetail](https://dovetail.com) UX research repository: projects containing rich-text notes, tagged highlights, and synthesized insights, viewable as Grid/Board/Table/Canvas/List, plus AI-assisted tagging and summarization.
+A self-hosted clone of the core [Dovetail](https://dovetail.com) UX research repository: projects containing rich-text notes, tagged highlights, and synthesized insights, viewable as Grid/Board/Table/Canvas/List, plus cross-project search and AI-assisted tagging/summarization.
 
-Single-user, no auth — see `/root/.claude/plans/i-want-to-create-fluttering-forest.md` (or ask for a recap) for the full architecture and build-order plan.
+Single-user, no auth.
 
 ## Getting started
 
@@ -29,8 +29,9 @@ To enable AI features (tag suggestions, summarization), set `ANTHROPIC_API_KEY` 
 - `npm run db:generate` — regenerate the Prisma client
 - `npm run db:seed` — seed sample data
 - `npm run db:studio` — Prisma Studio
-- `npm test` — Vitest unit tests
+- `npm test` — Vitest unit + integration tests
+- `npm run test:e2e` — Playwright smoke tests (starts the dev server automatically)
 
 ## Stack
 
-Next.js (App Router) + TypeScript, Prisma + Postgres, Tailwind + shadcn/ui, Tiptap (rich text + inline highlights), dnd-kit (Board), TanStack Table (Table), React Flow (Canvas), Anthropic SDK (AI features).
+Next.js (App Router) + TypeScript, Prisma + Postgres (full-text search via `tsvector`), Tailwind + shadcn/ui, Tiptap (rich text + inline highlights + highlight embeds), dnd-kit (Board), TanStack Table (Table), React Flow (Canvas), Anthropic SDK (AI features).

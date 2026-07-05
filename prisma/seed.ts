@@ -5,7 +5,11 @@ import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { colorForIndex } from "@/lib/palette";
 import { docToPlainText } from "@/lib/editor/plainText";
+import { auth } from "@/lib/auth/server";
 import type { JSONContent } from "@tiptap/react";
+
+const DEMO_EMAIL = "demo@example.com";
+const DEMO_PASSWORD = "demo-password-1234";
 
 function sentence(text: string, highlightId?: string): JSONContent {
   return {
@@ -33,14 +37,21 @@ function nextHighlightMarkId() {
 }
 
 async function main() {
-  console.log("Clearing existing projects…");
-  await db.project.deleteMany({});
+  console.log("Clearing existing demo user and projects…");
+  await db.user.deleteMany({ where: { email: DEMO_EMAIL } });
+
+  console.log("Creating demo user…");
+  const signUpResult = await auth.api.signUpEmail({
+    body: { name: "Demo User", email: DEMO_EMAIL, password: DEMO_PASSWORD },
+  });
+  const demoUser = signUpResult.user;
 
   // ── Project 1: Onboarding Research ─────────────────────────────
   const onboarding = await db.project.create({
     data: {
       name: "Onboarding Research",
       description: "Interviews and session recordings about first-run experience.",
+      userId: demoUser.id,
     },
   });
 
@@ -315,6 +326,7 @@ async function main() {
     data: {
       name: "Checkout Experience",
       description: "Usability findings from the redesigned checkout flow.",
+      userId: demoUser.id,
     },
   });
 
@@ -388,6 +400,9 @@ async function main() {
   console.log("Seed complete:");
   console.log(`  Project "${onboarding.name}" (${onboarding.id})`);
   console.log(`  Project "${checkout.name}" (${checkout.id})`);
+  console.log("Demo user credentials:");
+  console.log(`  email:    ${DEMO_EMAIL}`);
+  console.log(`  password: ${DEMO_PASSWORD}`);
 }
 
 // ── helpers ──────────────────────────────────────────────────────

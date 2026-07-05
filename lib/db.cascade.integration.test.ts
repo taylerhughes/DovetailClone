@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 
@@ -7,16 +8,23 @@ import { db } from "@/lib/db";
  * testing that Prisma's onDelete rules in schema.prisma behave as designed.
  */
 describe("cascade delete behavior", () => {
+  let userId: string;
   let projectId: string;
 
   afterAll(async () => {
-    // Cascades away anything left over from a failed assertion.
-    await db.project.deleteMany({ where: { id: projectId } });
+    // Cascades away the project (and everything under it) left over from a
+    // failed assertion.
+    await db.user.deleteMany({ where: { id: userId } });
   });
 
   beforeAll(async () => {
+    const user = await db.user.create({
+      data: { id: randomUUID(), name: "Cascade Test User", email: `cascade-test-${randomUUID()}@example.com` },
+    });
+    userId = user.id;
+
     const project = await db.project.create({
-      data: { name: "Cascade Test Project" },
+      data: { name: "Cascade Test Project", userId },
     });
     projectId = project.id;
   });

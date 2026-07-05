@@ -16,6 +16,7 @@ import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
 import { findTranscriptClipRange } from "@/lib/editor/transcriptRange";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
 import { InlineHighlightTagPopover } from "@/components/highlights/InlineHighlightTagPopover";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 import type { TagOption } from "@/components/tags/TagPicker";
 
 const AUTOSAVE_DELAY_MS = 800;
@@ -36,6 +37,7 @@ export function NoteEditor({
   highlights: { id: string; markId: string | null; tagIds: string[] }[];
 }) {
   const router = useRouter();
+  const { canEdit } = useProjectAccess();
   const [status, setStatus] = useState<"saved" | "saving" | "idle">("saved");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeHighlight, setActiveHighlight] = useState<{
@@ -59,6 +61,7 @@ export function NoteEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable: canEdit,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -76,6 +79,7 @@ export function NoteEditor({
       },
       handleDOMEvents: {
         click: (_view, event) => {
+          if (!canEdit) return false;
           const target = event.target as HTMLElement | null;
           const mark = target?.closest<HTMLElement>("mark[data-highlight-id]");
           if (mark) {
@@ -104,6 +108,10 @@ export function NoteEditor({
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    editor?.setEditable(canEdit);
+  }, [editor, canEdit]);
 
   // useEditor only uses `initialContent` at creation time — it never re-syncs
   // when the prop changes on a later render. A background transcription job
@@ -161,20 +169,24 @@ export function NoteEditor({
   return (
     <SpeakerMapContext.Provider value={speakerMaps ?? new Map()}>
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <EditorToolbar editor={editor} showHighlightButton={false} />
-          <span className="text-xs text-muted-foreground">
-            {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
-          </span>
-        </div>
-        <BubbleMenu editor={editor} className="flex rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
-          <Button type="button" variant="ghost" size="sm" onClick={handleAddHighlight}>
-            <Highlighter data-icon="inline-start" />
-            Highlight
-          </Button>
-        </BubbleMenu>
+        {canEdit && (
+          <div className="flex items-center justify-between">
+            <EditorToolbar editor={editor} showHighlightButton={false} />
+            <span className="text-xs text-muted-foreground">
+              {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
+            </span>
+          </div>
+        )}
+        {canEdit && (
+          <BubbleMenu editor={editor} className="flex rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+            <Button type="button" variant="ghost" size="sm" onClick={handleAddHighlight}>
+              <Highlighter data-icon="inline-start" />
+              Highlight
+            </Button>
+          </BubbleMenu>
+        )}
         <EditorContent editor={editor} />
-        {activeHighlight && activeHighlightRecord && (
+        {canEdit && activeHighlight && activeHighlightRecord && (
           <InlineHighlightTagPopover
             projectId={projectId}
             highlightId={activeHighlightRecord.id}

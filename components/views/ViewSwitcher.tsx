@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { createView, deleteView } from "@/actions/views";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 import type {
   ViewEntityType,
   ViewLayout,
@@ -56,6 +57,7 @@ export function ViewSwitcher({
   const [name, setName] = useState("");
   const [layout, setLayout] = useState<ViewLayout>(availableLayouts[0]);
   const [isPending, startTransition] = useTransition();
+  const { canEdit } = useProjectAccess();
 
   return (
     <div className="flex items-center gap-1 overflow-x-auto">
@@ -75,21 +77,24 @@ export function ViewSwitcher({
               {LAYOUT_LABELS[view.layout]}
             </span>
           </Link>
-          <button
-            aria-label={`Delete view ${view.name}`}
-            className="hidden pr-1 text-muted-foreground hover:text-destructive group-hover:block"
-            onClick={() =>
-              startTransition(async () => {
-                await deleteView(view.id);
-                router.push(basePath);
-              })
-            }
-          >
-            <Trash2 className="size-3" />
-          </button>
+          {canEdit && (
+            <button
+              aria-label={`Delete view ${view.name}`}
+              className="hidden pr-1 text-muted-foreground hover:text-destructive group-hover:block"
+              onClick={() =>
+                startTransition(async () => {
+                  await deleteView(view.id);
+                  router.push(basePath);
+                })
+              }
+            >
+              <Trash2 className="size-3" />
+            </button>
+          )}
         </div>
       ))}
 
+      {canEdit && (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger render={<Button variant="ghost" size="icon-sm" aria-label="New view" />}>
           <Plus />
@@ -135,6 +140,7 @@ export function ViewSwitcher({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }

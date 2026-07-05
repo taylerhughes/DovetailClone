@@ -19,10 +19,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteInsight } from "@/actions/insights";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 export function InsightActions({ insightId }: { insightId: string }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { canEdit } = useProjectAccess();
+
+  if (!canEdit) return null;
 
   return (
     <>

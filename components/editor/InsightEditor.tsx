@@ -15,6 +15,7 @@ import {
   type PickableHighlight,
 } from "@/components/editor/HighlightPickerDialog";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 const AUTOSAVE_DELAY_MS = 800;
 
@@ -29,6 +30,7 @@ export function InsightEditor({
   initialHighlightsById: Map<string, HighlightEmbedData>;
   availableHighlights: PickableHighlight[];
 }) {
+  const { canEdit } = useProjectAccess();
   const [status, setStatus] = useState<"saved" | "saving" | "idle">("saved");
   const [highlightsById, setHighlightsById] = useState(initialHighlightsById);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,6 +47,7 @@ export function InsightEditor({
 
   const editor = useEditor({
     immediatelyRender: false,
+    editable: canEdit,
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Placeholder.configure({ placeholder: "Write up your findings…" }),
@@ -72,27 +75,33 @@ export function InsightEditor({
     };
   }, []);
 
+  useEffect(() => {
+    editor?.setEditable(canEdit);
+  }, [editor, canEdit]);
+
   if (!editor) return null;
 
   return (
     <HighlightDataContext.Provider value={highlightsById}>
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <EditorToolbar editor={editor} showHighlightButton={false} />
-            <HighlightPickerDialog
-              editor={editor}
-              highlights={availableHighlights}
-              onInsert={(id, data) => {
-                setHighlightsById((prev) => new Map(prev).set(id, data));
-                void saveNow(editor.getJSON());
-              }}
-            />
+        {canEdit && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <EditorToolbar editor={editor} showHighlightButton={false} />
+              <HighlightPickerDialog
+                editor={editor}
+                highlights={availableHighlights}
+                onInsert={(id, data) => {
+                  setHighlightsById((prev) => new Map(prev).set(id, data));
+                  void saveNow(editor.getJSON());
+                }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
+            </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
-          </span>
-        </div>
+        )}
         <EditorContent editor={editor} />
       </div>
     </HighlightDataContext.Provider>

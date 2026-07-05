@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 export function Uploader({ noteId }: { noteId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
+  const { canEdit } = useProjectAccess();
+
+  if (!canEdit) return null;
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;

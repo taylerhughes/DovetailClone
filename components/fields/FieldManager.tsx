@@ -15,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FieldOptionsEditor } from "./FieldOptionsEditor";
 import { createField, deleteField } from "@/actions/fields";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 import type { FieldType } from "@/lib/generated/prisma/client";
 
 const FIELD_TYPE_LABELS: Record<FieldType, string> = {
@@ -46,47 +47,50 @@ export function FieldManager({
   const [newType, setNewType] = useState<FieldType>("TEXT");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { canEdit } = useProjectAccess();
 
   return (
     <div className="flex flex-col gap-4">
-      <form
-        className="flex gap-2"
-        action={() => {
-          if (!newName.trim()) return;
-          startTransition(async () => {
-            await createField(projectId, newName, newType);
-            setNewName("");
-            router.refresh();
-          });
-        }}
-      >
-        <Input
-          placeholder="New field name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <Select
-          value={newType}
-          onValueChange={(v) => setNewType(v as FieldType)}
+      {canEdit && (
+        <form
+          className="flex gap-2"
+          action={() => {
+            if (!newName.trim()) return;
+            startTransition(async () => {
+              await createField(projectId, newName, newType);
+              setNewName("");
+              router.refresh();
+            });
+          }}
         >
-          <SelectTrigger className="w-40">
-            <SelectValue>
-              {(v: FieldType) => FIELD_TYPE_LABELS[v]}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button type="submit" disabled={isPending || !newName.trim()}>
-          <Plus data-icon="inline-start" />
-          Add field
-        </Button>
-      </form>
+          <Input
+            placeholder="New field name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <Select
+            value={newType}
+            onValueChange={(v) => setNewType(v as FieldType)}
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue>
+                {(v: FieldType) => FIELD_TYPE_LABELS[v]}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(FIELD_TYPE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="submit" disabled={isPending || !newName.trim()}>
+            <Plus data-icon="inline-start" />
+            Add field
+          </Button>
+        </form>
+      )}
 
       {initialFields.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -102,20 +106,22 @@ export function FieldManager({
                 <Badge variant="secondary">
                   {FIELD_TYPE_LABELS[field.type]}
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label="Delete field"
-                  className="ml-auto"
-                  onClick={() =>
-                    startTransition(async () => {
-                      await deleteField(field.id);
-                      router.refresh();
-                    })
-                  }
-                >
-                  <Trash2 />
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    aria-label="Delete field"
+                    className="ml-auto"
+                    onClick={() =>
+                      startTransition(async () => {
+                        await deleteField(field.id);
+                        router.refresh();
+                      })
+                    }
+                  >
+                    <Trash2 />
+                  </Button>
+                )}
               </div>
               {SELECT_TYPES.includes(field.type) && (
                 <FieldOptionsEditor

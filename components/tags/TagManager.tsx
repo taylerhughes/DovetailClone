@@ -16,6 +16,7 @@ import {
 import { TagBadge } from "./TagBadge";
 import { TAG_COLORS } from "@/lib/palette";
 import { createTag, deleteTag, recolorTag, renameTag, setTagParent } from "@/actions/tags";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 type Tag = { id: string; name: string; color: string; parentId: string | null };
 
@@ -32,6 +33,7 @@ export function TagManager({
   const [newParentId, setNewParentId] = useState(NO_PARENT);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { canEdit } = useProjectAccess();
 
   const topLevelTags = initialTags.filter((t) => !t.parentId);
   const childrenByParentId = new Map<string, Tag[]>();
@@ -50,6 +52,23 @@ export function TagManager({
     // parent's children can't themselves become parents — keeps nesting to
     // the one level the schema is designed for.
     const canHaveParent = !tagsWithChildren.has(tag.id);
+
+    if (!canEdit) {
+      return (
+        <div key={tag.id} className={`flex items-center gap-3 p-3 ${indented ? "pl-8" : ""}`}>
+          <TagBadge name={tag.name} color={tag.color} />
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="View highlights and reels"
+            className="ml-auto"
+            render={<Link href={`/projects/${projectId}/tags/${tag.id}`} />}
+          >
+            <Video />
+          </Button>
+        </div>
+      );
+    }
 
     return (
       <div key={tag.id} className={`flex items-center gap-3 p-3 ${indented ? "pl-8" : ""}`}>
@@ -145,51 +164,53 @@ export function TagManager({
 
   return (
     <div className="flex flex-col gap-4">
-      <form
-        className="flex gap-2"
-        action={() => {
-          if (!newName.trim()) return;
-          startTransition(async () => {
-            await createTag(
-              projectId,
-              newName,
-              newParentId === NO_PARENT ? null : newParentId,
-            );
-            setNewName("");
-            setNewParentId(NO_PARENT);
-            router.refresh();
-          });
-        }}
-      >
-        <Input
-          placeholder="New tag name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <Select value={newParentId} onValueChange={(v) => setNewParentId(v ?? NO_PARENT)}>
-          <SelectTrigger className="w-44">
-            <SelectValue>
-              {(v: string) =>
-                v === NO_PARENT
-                  ? "No parent"
-                  : (topLevelTags.find((t) => t.id === v)?.name ?? "No parent")
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_PARENT}>No parent</SelectItem>
-            {topLevelTags.map((t) => (
-              <SelectItem key={t.id} value={t.id}>
-                {t.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button type="submit" disabled={isPending || !newName.trim()}>
-          <Plus data-icon="inline-start" />
-          Add tag
-        </Button>
-      </form>
+      {canEdit && (
+        <form
+          className="flex gap-2"
+          action={() => {
+            if (!newName.trim()) return;
+            startTransition(async () => {
+              await createTag(
+                projectId,
+                newName,
+                newParentId === NO_PARENT ? null : newParentId,
+              );
+              setNewName("");
+              setNewParentId(NO_PARENT);
+              router.refresh();
+            });
+          }}
+        >
+          <Input
+            placeholder="New tag name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <Select value={newParentId} onValueChange={(v) => setNewParentId(v ?? NO_PARENT)}>
+            <SelectTrigger className="w-44">
+              <SelectValue>
+                {(v: string) =>
+                  v === NO_PARENT
+                    ? "No parent"
+                    : (topLevelTags.find((t) => t.id === v)?.name ?? "No parent")
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_PARENT}>No parent</SelectItem>
+              {topLevelTags.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button type="submit" disabled={isPending || !newName.trim()}>
+            <Plus data-icon="inline-start" />
+            Add tag
+          </Button>
+        </form>
+      )}
 
       {initialTags.length === 0 ? (
         <p className="text-sm text-muted-foreground">

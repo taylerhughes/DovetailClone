@@ -11,6 +11,7 @@ import {
   deleteTeamMember,
   renameTeamMember,
 } from "@/actions/teamMembers";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 type Member = { id: string; name: string; color: string };
 
@@ -24,30 +25,33 @@ export function TeamManager({
   const [newName, setNewName] = useState("");
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const { canEdit } = useProjectAccess();
 
   return (
     <div className="flex flex-col gap-4">
-      <form
-        className="flex gap-2"
-        action={() => {
-          if (!newName.trim()) return;
-          startTransition(async () => {
-            await createTeamMember(projectId, newName);
-            setNewName("");
-            router.refresh();
-          });
-        }}
-      >
-        <Input
-          placeholder="New team member name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <Button type="submit" disabled={isPending || !newName.trim()}>
-          <Plus data-icon="inline-start" />
-          Add member
-        </Button>
-      </form>
+      {canEdit && (
+        <form
+          className="flex gap-2"
+          action={() => {
+            if (!newName.trim()) return;
+            startTransition(async () => {
+              await createTeamMember(projectId, newName);
+              setNewName("");
+              router.refresh();
+            });
+          }}
+        >
+          <Input
+            placeholder="New team member name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+          />
+          <Button type="submit" disabled={isPending || !newName.trim()}>
+            <Plus data-icon="inline-start" />
+            Add member
+          </Button>
+        </form>
+      )}
 
       {initialMembers.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -68,8 +72,13 @@ export function TeamManager({
               <Input
                 defaultValue={member.name}
                 className="h-7 max-w-48"
+                readOnly={!canEdit}
                 onBlur={(e) => {
-                  if (e.target.value.trim() && e.target.value !== member.name) {
+                  if (
+                    canEdit &&
+                    e.target.value.trim() &&
+                    e.target.value !== member.name
+                  ) {
                     startTransition(async () => {
                       await renameTeamMember(member.id, e.target.value);
                       router.refresh();
@@ -77,20 +86,22 @@ export function TeamManager({
                   }
                 }}
               />
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Delete team member"
-                className="ml-auto"
-                onClick={() =>
-                  startTransition(async () => {
-                    await deleteTeamMember(member.id);
-                    router.refresh();
-                  })
-                }
-              >
-                <Trash2 />
-              </Button>
+              {canEdit && (
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Delete team member"
+                  className="ml-auto"
+                  onClick={() =>
+                    startTransition(async () => {
+                      await deleteTeamMember(member.id);
+                      router.refresh();
+                    })
+                  }
+                >
+                  <Trash2 />
+                </Button>
+              )}
             </div>
           ))}
         </div>

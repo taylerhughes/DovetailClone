@@ -13,6 +13,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { canvasNodeTypes, type CanvasCardData } from "./canvas/CanvasCardNode";
 import { updateCardPosition, removeFromCanvas } from "@/actions/canvas";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 import type { CanvasSubjectType } from "@/lib/generated/prisma/client";
 
 export interface CanvasCard {
@@ -33,6 +34,7 @@ export function CanvasView({
   cards: CanvasCard[];
 }) {
   const router = useRouter();
+  const { canEdit } = useProjectAccess();
 
   const initialNodes = useMemo<Node[]>(
     () =>
@@ -87,6 +89,7 @@ export function CanvasView({
         nodeTypes={canvasNodeTypes}
         onNodesChange={onNodesChange}
         onNodeDragStop={handleNodeDragStop}
+        nodesDraggable={canEdit}
         nodesConnectable={false}
         elementsSelectable
         fitView

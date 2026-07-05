@@ -27,6 +27,7 @@ import {
   renameProject,
   updateProjectDescription,
 } from "@/actions/projects";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 export function ProjectSettings({
   projectId,
@@ -40,6 +41,9 @@ export function ProjectSettings({
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { level, canEdit } = useProjectAccess();
+
+  if (!canEdit) return null;
 
   function handleEdit(formData: FormData) {
     const nextName = String(formData.get("name") ?? "");
@@ -69,12 +73,14 @@ export function ProjectSettings({
           <DropdownMenuItem onClick={() => setEditOpen(true)}>
             <Pencil /> Edit project
           </DropdownMenuItem>
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setDeleteOpen(true)}
-          >
-            <Trash2 /> Delete project
-          </DropdownMenuItem>
+          {level === "owner" && (
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 /> Delete project
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

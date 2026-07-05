@@ -19,10 +19,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { deleteNote } from "@/actions/notes";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 
 export function NoteActions({ noteId }: { noteId: string }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const { canEdit } = useProjectAccess();
+
+  if (!canEdit) return null;
 
   return (
     <>

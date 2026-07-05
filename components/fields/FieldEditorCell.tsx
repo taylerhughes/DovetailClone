@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TagBadge } from "@/components/tags/TagBadge";
+import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
 import type { FieldValueInput } from "@/lib/fieldValueTypes";
 import type { FieldType } from "@/lib/generated/prisma/client";
 
@@ -40,12 +41,42 @@ export function FieldEditorCell({
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const { canEdit } = useProjectAccess();
 
   function submit(input: FieldValueInput) {
     startTransition(async () => {
       await onSubmit(input);
       router.refresh();
     });
+  }
+
+  if (!canEdit) {
+    const selected = options.filter((o) => value.selectedOptionIds.includes(o.id));
+    const display =
+      type === "TEXT"
+        ? value.valueText
+        : type === "NUMBER"
+          ? value.valueNumber?.toString()
+          : type === "DATE"
+            ? value.valueDate
+            : type === "PERSON"
+              ? teamMembers.find((m) => m.id === value.teamMemberId)?.name
+              : null;
+    return (
+      <div className="flex h-7 flex-wrap items-center gap-1 text-sm">
+        {type === "SINGLE_SELECT" || type === "MULTI_SELECT" ? (
+          selected.length === 0 ? (
+            <span className="text-muted-foreground">None</span>
+          ) : (
+            selected.map((o) => <TagBadge key={o.id} name={o.label} color={o.color} />)
+          )
+        ) : (
+          <span className={display ? undefined : "text-muted-foreground"}>
+            {display || "—"}
+          </span>
+        )}
+      </div>
+    );
   }
 
   if (type === "TEXT") {

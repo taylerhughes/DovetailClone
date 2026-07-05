@@ -22,6 +22,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 To enable AI features (tag suggestions, summarization), set `ANTHROPIC_API_KEY` in `.env`.
 
+To enable video/audio transcription and highlight reels, set `ASSEMBLYAI_API_KEY` in `.env`
+and make sure `ffmpeg` is installed and on `PATH` (`brew install ffmpeg` / `apt install ffmpeg`;
+already included in the Docker image).
+
 ## Scripts
 
 - `npm run dev` / `build` / `start` — Next.js app
@@ -34,4 +38,4 @@ To enable AI features (tag suggestions, summarization), set `ANTHROPIC_API_KEY` 
 
 ## Stack
 
-Next.js (App Router) + TypeScript, Prisma + Postgres (full-text search via `tsvector`), Tailwind + shadcn/ui, Tiptap (rich text + inline highlights + highlight embeds), dnd-kit (Board), TanStack Table (Table), React Flow (Canvas), Anthropic SDK (AI features).
+Next.js (App Router) + TypeScript, Prisma + Postgres (full-text search via `tsvector`), Tailwind + shadcn/ui, Tiptap (rich text + inline highlights + highlight embeds), dnd-kit (Board), TanStack Table (Table), React Flow (Canvas), Anthropic SDK (AI features), AssemblyAI (transcription) + ffmpeg (highlight reels).

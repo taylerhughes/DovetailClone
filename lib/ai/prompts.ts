@@ -74,6 +74,36 @@ export interface AskResearchCandidate {
   text: string;
 }
 
+export function detectConflictsSystemPrompt(): string {
+  return "You are a UX research assistant. You compare an existing insight's claims against other evidence from the same project's research repository, and flag anything that contradicts, undermines, or supersedes the insight. Only flag genuine contradictions or meaningful updates -- do not flag evidence that's merely unrelated or that simply supports the insight further. If nothing conflicts, return an empty list.";
+}
+
+export interface ConflictCandidate {
+  subjectType: "HIGHLIGHT" | "INSIGHT";
+  subjectId: string;
+  text: string;
+}
+
+export function detectConflictsUserPrompt(
+  insightTitle: string,
+  insightText: string,
+  candidates: ConflictCandidate[],
+): string {
+  const list = candidates
+    .map((c) => `- [${c.subjectType}:${c.subjectId}] "${c.text}"`)
+    .join("\n");
+
+  return [
+    `Existing insight: "${insightTitle}"`,
+    insightText,
+    "",
+    "Other evidence from this project's research repository:",
+    list || "(none found)",
+    "",
+    "Which of the excerpts above, if any, contradict, undermine, or meaningfully update the existing insight? For each, give a severity (LOW, MEDIUM, or HIGH) and a short explanation of the conflict.",
+  ].join("\n");
+}
+
 export function askResearchUserPrompt(
   question: string,
   history: { role: "user" | "assistant"; content: string }[],

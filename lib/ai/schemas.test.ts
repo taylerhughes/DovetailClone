@@ -5,6 +5,7 @@ import {
   draftInsightResultSchema,
   generateThemesResultSchema,
   askResearchResultSchema,
+  detectConflictsResultSchema,
 } from "./schemas";
 
 describe("suggestTagsResultSchema", () => {
@@ -112,6 +113,34 @@ describe("askResearchResultSchema", () => {
 
   it("rejects a response missing answer", () => {
     const result = askResearchResultSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("detectConflictsResultSchema", () => {
+  it("accepts a well-formed conflict list", () => {
+    const result = detectConflictsResultSchema.safeParse({
+      conflicts: [
+        { subjectType: "HIGHLIGHT", subjectId: "h1", severity: "HIGH", explanation: "..." },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("defaults conflicts to [] when omitted", () => {
+    const result = detectConflictsResultSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.conflicts).toEqual([]);
+    }
+  });
+
+  it("rejects an invalid severity", () => {
+    const result = detectConflictsResultSchema.safeParse({
+      conflicts: [
+        { subjectType: "HIGHLIGHT", subjectId: "h1", severity: "EXTREME", explanation: "..." },
+      ],
+    });
     expect(result.success).toBe(false);
   });
 });

@@ -241,6 +241,7 @@ model Insight {
 
   highlightLinks InsightHighlight[]
   fieldValues    InsightFieldValue[]
+  conflicts      InsightConflict[]
 
   @@index([projectId])
 }
@@ -252,6 +253,38 @@ model InsightHighlight {
   highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
 
   @@id([insightId, highlightId])
+}
+
+enum ConflictSubjectType {
+  HIGHLIGHT
+  INSIGHT
+}
+
+enum ConflictSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model InsightConflict {
+  id        String  @id @default(cuid())
+  insightId String
+  insight   Insight @relation(fields: [insightId], references: [id], onDelete: Cascade)
+
+  // Polymorphic reference to the conflicting Highlight or Insight -- no FK is
+  // possible across two different tables (same limitation/precedent as
+  // EmbeddingChunk.subjectId).
+  conflictingType ConflictSubjectType
+  conflictingId   String
+
+  severity    ConflictSeverity
+  explanation String
+
+  dismissed   Boolean   @default(false)
+  dismissedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([insightId, conflictingType, conflictingId])
 }
 
 model Theme {

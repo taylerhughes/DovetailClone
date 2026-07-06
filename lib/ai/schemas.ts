@@ -37,6 +37,18 @@ export const generateThemesResultSchema = z.object({
 });
 export type GenerateThemesResult = z.infer<typeof generateThemesResultSchema>;
 
+export const detectConflictsResultSchema = z.object({
+  conflicts: z.array(
+    z.object({
+      subjectType: z.enum(["HIGHLIGHT", "INSIGHT"]),
+      subjectId: z.string(),
+      severity: z.enum(["LOW", "MEDIUM", "HIGH"]),
+      explanation: z.string(),
+    }),
+  ).default([]),
+});
+export type DetectConflictsResult = z.infer<typeof detectConflictsResultSchema>;
+
 export const askResearchResultSchema = z.object({
   answer: z.string(),
   citations: z.array(

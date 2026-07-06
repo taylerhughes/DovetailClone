@@ -105,4 +105,48 @@ describe("cascade delete behavior", () => {
     expect(remainingTag).not.toBeNull();
     expect(remainingProject).not.toBeNull();
   });
+
+  it("deleting an Insight removes its InsightConflicts and ThemeHighlight/Theme links, but leaves the Project intact", async () => {
+    const note = await db.note.create({
+      data: { projectId, title: "Cascade note 3", content: { type: "doc", content: [] } },
+    });
+    const highlight = await db.highlight.create({
+      data: { noteId: note.id, quote: "some quote", wholeNote: true },
+    });
+    const insight = await db.insight.create({
+      data: { projectId, title: "Cascade insight", content: { type: "doc", content: [] } },
+    });
+    const conflict = await db.insightConflict.create({
+      data: {
+        insightId: insight.id,
+        conflictingType: "HIGHLIGHT",
+        conflictingId: highlight.id,
+        severity: "LOW",
+        explanation: "test conflict",
+      },
+    });
+    const theme = await db.theme.create({
+      data: { projectId, title: "Cascade theme", description: "..." },
+    });
+    await db.themeHighlight.create({
+      data: { themeId: theme.id, highlightId: highlight.id },
+    });
+
+    await db.insight.delete({ where: { id: insight.id } });
+    await db.theme.delete({ where: { id: theme.id } });
+
+    const [remainingConflict, remainingThemeHighlight, remainingProject] = await Promise.all([
+      db.insightConflict.findUnique({ where: { id: conflict.id } }),
+      db.themeHighlight.findUnique({
+        where: { themeId_highlightId: { themeId: theme.id, highlightId: highlight.id } },
+      }),
+      db.project.findUnique({ where: { id: projectId } }),
+    ]);
+
+    expect(remainingConflict).toBeNull();
+    expect(remainingThemeHighlight).toBeNull();
+    expect(remainingProject).not.toBeNull();
+
+    await db.note.delete({ where: { id: note.id } });
+  });
 });

@@ -212,6 +212,9 @@ model Highlight {
   attachment   Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
   clipStartSec Float?
   clipEndSec   Float?
+  /// cached storage key for the extracted-frame clip thumbnail, generated
+  /// lazily by GET /api/highlights/[id]/thumbnail on first request
+  thumbnailStorageKey String?
 
   tagAssignments HighlightTag[]
   insightLinks   InsightHighlight[]

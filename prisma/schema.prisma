@@ -118,9 +118,10 @@ model Project {
   tags           Tag[]
   fields         Field[]
   views          View[]
-  teamMembers    TeamMember[]
-  highlightReels HighlightReel[]
-  themes         Theme[]
+  teamMembers     TeamMember[]
+  highlightReels  HighlightReel[]
+  themes          Theme[]
+  embeddingChunks EmbeddingChunk[]
 
   @@index([userId])
   @@index([organizationId])
@@ -547,4 +548,41 @@ model Invitation {
   @@index([organizationId])
   @@index([email])
   @@map("invitation")
+}
+
+// ── Embeddings (semantic search: ask-your-research chat, contradiction detection) ──
+
+enum EmbeddingSubjectType {
+  NOTE
+  HIGHLIGHT
+  INSIGHT
+}
+
+model EmbeddingChunk {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Polymorphic reference to a Note/Highlight/Insight row -- no FK is possible
+  // across three different tables. Unlike CanvasCardPosition's equivalent
+  // polymorphic subjectId (which is allowed to dangle silently), a dangling
+  // chunk here would actively resurface deleted content in chat/conflict
+  // results, so callers (actions/{notes,highlights,insights}.ts's delete
+  // actions) explicitly clean these up via lib/embeddings/cleanup.ts.
+  subjectType EmbeddingSubjectType
+  subjectId   String
+  chunkIndex  Int    @default(0)
+  chunkText   String
+
+  /// plain (non-generated) pgvector column -- only lib/embeddings/store.ts's
+  /// raw $queryRaw/$executeRaw calls may read/write this; it is invisible to
+  /// the typed Prisma Client
+  embedding Unsupported("vector(1024)")
+  model     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subjectType, subjectId, chunkIndex])
+  @@index([projectId])
 }

@@ -26,6 +26,12 @@ To enable video/audio transcription and highlight reels, set `ASSEMBLYAI_API_KEY
 and make sure `ffmpeg` is installed and on `PATH` (`brew install ffmpeg` / `apt install ffmpeg`;
 already included in the Docker image).
 
+To enable semantic search (ask-your-research chat, contradiction detection), set
+`VOYAGE_API_KEY` in `.env`. This requires Postgres to have the `pgvector` extension installed
+(the `docker-compose.yml` Postgres image already includes it; if running Postgres yourself,
+install the `pgvector` package for your Postgres version and the app's migrations will
+`CREATE EXTENSION IF NOT EXISTS vector` automatically).
+
 ## Scripts
 
 - `npm run dev` / `build` / `start` — Next.js app

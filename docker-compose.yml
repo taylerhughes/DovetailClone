@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_USER: dovetail
@@ -30,6 +30,8 @@ services:
       ANTHROPIC_MODEL_TAGGING: "${ANTHROPIC_MODEL_TAGGING:-claude-haiku-4-5-20251001}"
       ANTHROPIC_MODEL_SUMMARIZE: "${ANTHROPIC_MODEL_SUMMARIZE:-claude-sonnet-5}"
       ASSEMBLYAI_API_KEY: "${ASSEMBLYAI_API_KEY:-}"
+      VOYAGE_API_KEY: "${VOYAGE_API_KEY:-}"
+      VOYAGE_MODEL_EMBED: "${VOYAGE_MODEL_EMBED:-voyage-4-lite}"
       BETTER_AUTH_SECRET: "${BETTER_AUTH_SECRET:-}"
       BETTER_AUTH_URL: "${BETTER_AUTH_URL:-http://localhost:3000}"
       GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"

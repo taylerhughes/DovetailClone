@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
 import { extractHighlightEmbedIds } from "@/lib/editor/extractIds";
+import { syncInsightEmbeddings } from "@/lib/embeddings/sync";
+import { deleteEmbeddingsForInsight } from "@/lib/embeddings/cleanup";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -87,6 +89,7 @@ export async function updateInsightContent(
   });
 
   await syncInsightHighlights(insightId, content as unknown as JSONContent);
+  void syncInsightEmbeddings(insightId);
 
   revalidatePath(`/projects/${insight.projectId}/insights`);
 }
@@ -99,6 +102,7 @@ export async function deleteInsight(insightId: string) {
     where: { id: insightId },
     select: { projectId: true },
   });
+  await deleteEmbeddingsForInsight(insightId);
 
   revalidatePath(`/projects/${insight.projectId}/insights`);
   redirect(`/projects/${insight.projectId}/insights`);

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import { syncHighlightsForNote } from "@/lib/highlights/sync";
+import { syncNoteEmbeddings, syncHighlightEmbeddings } from "@/lib/embeddings/sync";
 import { docToPlainText } from "@/lib/editor/plainText";
 import { getAssemblyAiClient, isTranscriptionEnabled } from "@/lib/transcription/client";
 import {
@@ -138,7 +139,11 @@ async function processTranscription(attachmentId: string) {
         "Could not save transcript: the note kept changing concurrently",
       );
     }
-    await syncHighlightsForNote(attachment.noteId, nextDoc);
+    const touchedHighlightIds = await syncHighlightsForNote(attachment.noteId, nextDoc);
+    // Already inside a detached background task (see processTranscription's
+    // caller), so these are awaited directly rather than fired with `void`.
+    await syncNoteEmbeddings(attachment.noteId);
+    await syncHighlightEmbeddings(touchedHighlightIds);
 
     await db.attachment.update({
       where: { id: attachmentId },

@@ -10,6 +10,10 @@ import type { Prisma } from "@/lib/generated/prisma/client";
  * mark was removed from the doc (without deleting them, to preserve any tags
  * or insight embeds already attached).
  *
+ * Returns the ids of highlights actually created or updated (quote changed or
+ * un-orphaned) -- not orphaned rows, whose quote is unchanged -- so callers
+ * can re-embed only what changed rather than the note's entire highlight set.
+ *
  * Deliberately NOT in a "use server" actions file: every export of such a file
  * becomes an individually invokable server action regardless of whether any
  * client code references it, and this helper is called from
@@ -18,7 +22,10 @@ import type { Prisma } from "@/lib/generated/prisma/client";
  * actions/transcription.ts#processTranscription) are themselves the
  * authorization boundary.
  */
-export async function syncHighlightsForNote(noteId: string, doc: JSONContent) {
+export async function syncHighlightsForNote(
+  noteId: string,
+  doc: JSONContent,
+): Promise<string[]> {
   const [marks, existing] = await Promise.all([
     Promise.resolve(extractHighlightMarks(doc)),
     db.highlight.findMany({ where: { noteId, wholeNote: false } }),
@@ -29,20 +36,24 @@ export async function syncHighlightsForNote(noteId: string, doc: JSONContent) {
     existing.filter((h) => h.markId).map((h) => [h.markId as string, h]),
   );
 
-  const ops: Prisma.PrismaPromise<unknown>[] = [];
+  const ops: Prisma.PrismaPromise<{ id: string }>[] = [];
   let nextOrder = existing.length;
 
   for (const { markId, quote } of marks) {
     const row = existingByMarkId.get(markId);
     if (!row) {
       ops.push(
-        db.highlight.create({ data: { noteId, markId, quote, order: nextOrder++ } }),
+        db.highlight.create({
+          data: { noteId, markId, quote, order: nextOrder++ },
+          select: { id: true },
+        }),
       );
     } else if (row.quote !== quote || row.orphaned) {
       ops.push(
         db.highlight.update({
           where: { id: row.id },
           data: { quote, orphaned: false },
+          select: { id: true },
         }),
       );
     }
@@ -50,11 +61,23 @@ export async function syncHighlightsForNote(noteId: string, doc: JSONContent) {
 
   for (const row of existing) {
     if (row.markId && !markIds.has(row.markId) && !row.orphaned) {
-      ops.push(db.highlight.update({ where: { id: row.id }, data: { orphaned: true } }));
+      ops.push(
+        db.highlight.update({
+          where: { id: row.id },
+          data: { orphaned: true },
+          select: { id: true },
+        }),
+      );
     }
   }
 
-  if (ops.length > 0) {
-    await db.$transaction(ops);
-  }
+  if (ops.length === 0) return [];
+
+  const results = await db.$transaction(ops);
+  const orphanedIds = new Set(
+    existing
+      .filter((row) => row.markId && !markIds.has(row.markId) && !row.orphaned)
+      .map((row) => row.id),
+  );
+  return results.map((r) => r.id).filter((id) => !orphanedIds.has(id));
 }

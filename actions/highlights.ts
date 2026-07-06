@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { stripHighlightMark } from "@/lib/editor/extractIds";
 import { docToPlainText } from "@/lib/editor/plainText";
+import { syncHighlightEmbeddings } from "@/lib/embeddings/sync";
+import { deleteEmbeddingsForHighlight } from "@/lib/embeddings/cleanup";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { JSONContent } from "@tiptap/react";
@@ -35,6 +37,7 @@ export async function createHighlight(
     update: { quote, orphaned: false, ...clipRange },
   });
 
+  void syncHighlightEmbeddings([highlight.id]);
   await revalidateHighlightPaths(note.projectId, noteId);
   return highlight;
 }
@@ -59,6 +62,7 @@ export async function createWholeNoteHighlight(noteId: string) {
     },
   });
 
+  void syncHighlightEmbeddings([highlight.id]);
   await revalidateHighlightPaths(note.projectId, noteId);
   return highlight;
 }
@@ -86,6 +90,7 @@ export async function deleteHighlight(highlightId: string) {
   }
 
   await db.highlight.delete({ where: { id: highlightId } });
+  await deleteEmbeddingsForHighlight(highlightId);
 
   await revalidateHighlightPaths(highlight.note.projectId, highlight.note.id);
 }

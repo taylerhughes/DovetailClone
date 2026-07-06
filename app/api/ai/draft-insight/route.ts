@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { isAiEnabled } from "@/lib/ai/client";
 import { draftInsightFromHighlights } from "@/lib/ai/summarize";
 import { docToPlainText } from "@/lib/editor/plainText";
+import { syncInsightEmbeddings } from "@/lib/embeddings/sync";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasProjectEditAccess } from "@/lib/auth/authorize";
@@ -64,6 +65,7 @@ export async function POST(request: Request) {
       data: highlights.map((h) => ({ insightId: insight.id, highlightId: h.id })),
       skipDuplicates: true,
     });
+    void syncInsightEmbeddings(insight.id);
 
     return NextResponse.json({ insightId: insight.id });
   } catch (err) {

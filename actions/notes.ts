@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { docToPlainText, emptyDoc } from "@/lib/editor/plainText";
 import { syncHighlightsForNote } from "@/lib/highlights/sync";
+import { syncNoteEmbeddings, syncHighlightEmbeddings } from "@/lib/embeddings/sync";
+import { deleteEmbeddingsForNote } from "@/lib/embeddings/cleanup";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectEditAccess } from "@/lib/auth/authorize";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -63,7 +65,12 @@ export async function updateNoteContent(
     select: { projectId: true },
   });
 
-  await syncHighlightsForNote(noteId, content as unknown as JSONContent);
+  const touchedHighlightIds = await syncHighlightsForNote(
+    noteId,
+    content as unknown as JSONContent,
+  );
+  void syncNoteEmbeddings(noteId);
+  void syncHighlightEmbeddings(touchedHighlightIds);
 
   revalidatePath(`/projects/${note.projectId}/data`);
 }
@@ -75,6 +82,10 @@ export async function deleteNote(noteId: string) {
     select: { projectId: true },
   });
   await requireProjectEditAccess(existing.projectId, user.id);
+
+  // Must run before the delete: it looks up the note's highlights to clean up
+  // their embedding chunks too, and those rows cascade away with the note.
+  await deleteEmbeddingsForNote(noteId);
 
   const note = await db.note.delete({
     where: { id: noteId },

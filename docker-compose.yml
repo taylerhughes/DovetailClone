@@ -24,8 +24,12 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: "postgresql://dovetail:dovetail@postgres:5432/dovetailclone?schema=public"
-      STORAGE_DRIVER: "local"
+      STORAGE_DRIVER: "${STORAGE_DRIVER:-local}"
       STORAGE_LOCAL_DIR: ".data/uploads"
+      AWS_S3_BUCKET: "${AWS_S3_BUCKET:-}"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID:-}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY:-}"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
       ANTHROPIC_MODEL_TAGGING: "${ANTHROPIC_MODEL_TAGGING:-claude-haiku-4-5-20251001}"
       ANTHROPIC_MODEL_SUMMARIZE: "${ANTHROPIC_MODEL_SUMMARIZE:-claude-sonnet-5}"

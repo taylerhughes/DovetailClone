@@ -32,6 +32,12 @@ To enable semantic search (ask-your-research chat, contradiction detection), set
 install the `pgvector` package for your Postgres version and the app's migrations will
 `CREATE EXTENSION IF NOT EXISTS vector` automatically).
 
+For production, set `STORAGE_DRIVER=s3` (plus `AWS_S3_BUCKET`/`AWS_REGION`) to store uploads
+in S3 instead of local disk — required for any multi-instance or ephemeral-container
+deployment. Credentials come from the AWS SDK's default provider chain: an IAM role in
+production, or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` for local testing against a real
+bucket.
+
 ## Scripts
 
 - `npm run dev` / `build` / `start` — Next.js app

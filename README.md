@@ -2,7 +2,7 @@
 
 A self-hosted clone of the core [Dovetail](https://dovetail.com) UX research repository: projects containing rich-text notes, tagged highlights, and synthesized insights, viewable as Grid/Board/Table/Canvas/List, plus cross-project search and AI-assisted tagging/summarization.
 
-Single-user, no auth.
+Multi-tenant with email/password + OAuth sign-in, organizations, and per-project sharing.
 
 ## Getting started
 
@@ -37,6 +37,14 @@ in S3 instead of local disk — required for any multi-instance or ephemeral-con
 deployment. Credentials come from the AWS SDK's default provider chain: an IAM role in
 production, or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` for local testing against a real
 bucket.
+
+To send real emails (password reset, email verification, org invites) via AWS SES, set
+`EMAIL_FROM_ADDRESS` to a sender identity verified in SES. Leave unset to fall back to logging
+the email content/link to the console instead (dev-only, no email actually sent).
+
+Both password-reset and login attempts are rate-limited automatically (Better Auth's built-in
+limiter, backed by Postgres); AI/embeddings calls and uploads are rate-limited per-user via
+`lib/rateLimit` — see `lib/rateLimit/limits.ts` to tune the budgets.
 
 ## Scripts
 

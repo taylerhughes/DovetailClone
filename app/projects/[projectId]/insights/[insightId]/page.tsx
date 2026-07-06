@@ -4,10 +4,16 @@ import { db } from "@/lib/db";
 import { InsightEditor } from "@/components/editor/InsightEditor";
 import { InsightTitle } from "@/components/insights/InsightTitle";
 import { InsightActions } from "@/components/insights/InsightActions";
+import { InsightConflictBanner } from "@/components/insights/InsightConflictBanner";
+import { CheckConflictsButton } from "@/components/insights/CheckConflictsButton";
 import { FieldEditorCell } from "@/components/fields/FieldEditorCell";
 import { setInsightFieldValue } from "@/actions/insightFieldValues";
+import { isAiEnabled } from "@/lib/ai/client";
+import { isEmbeddingsEnabled } from "@/lib/embeddings/client";
 import type { HighlightEmbedData } from "@/components/editor/HighlightDataContext";
 import type { PickableHighlight } from "@/components/editor/HighlightPickerDialog";
+
+const SEVERITY_RANK = { HIGH: 0, MEDIUM: 1, LOW: 2 } as const;
 
 export default async function InsightDetailPage({
   params,
@@ -41,6 +47,59 @@ export default async function InsightDetailPage({
     notFound();
   }
 
+  const conflicts = await db.insightConflict.findMany({
+    where: { insightId, dismissed: false },
+    orderBy: { createdAt: "desc" },
+  });
+  const conflictHighlightIds = conflicts
+    .filter((c) => c.conflictingType === "HIGHLIGHT")
+    .map((c) => c.conflictingId);
+  const conflictInsightIds = conflicts
+    .filter((c) => c.conflictingType === "INSIGHT")
+    .map((c) => c.conflictingId);
+  const [conflictingHighlights, conflictingInsights] = await Promise.all([
+    conflictHighlightIds.length
+      ? db.highlight.findMany({
+          where: { id: { in: conflictHighlightIds } },
+          select: { id: true, quote: true, note: { select: { id: true, projectId: true } } },
+        })
+      : [],
+    conflictInsightIds.length
+      ? db.insight.findMany({
+          where: { id: { in: conflictInsightIds } },
+          select: { id: true, title: true, projectId: true },
+        })
+      : [],
+  ]);
+  const conflictingHighlightById = new Map(conflictingHighlights.map((h) => [h.id, h]));
+  const conflictingInsightById = new Map(conflictingInsights.map((i) => [i.id, i]));
+
+  const conflictViews = conflicts
+    .map((c) => {
+      if (c.conflictingType === "HIGHLIGHT") {
+        const h = conflictingHighlightById.get(c.conflictingId);
+        if (!h) return null;
+        return {
+          id: c.id,
+          severity: c.severity,
+          explanation: c.explanation,
+          sourceTitle: `"${h.quote}"`,
+          href: `/projects/${h.note.projectId}/data/${h.note.id}`,
+        };
+      }
+      const i = conflictingInsightById.get(c.conflictingId);
+      if (!i) return null;
+      return {
+        id: c.id,
+        severity: c.severity,
+        explanation: c.explanation,
+        sourceTitle: i.title,
+        href: `/projects/${i.projectId}/insights/${i.id}`,
+      };
+    })
+    .filter((c) => c != null)
+    .sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+
   const toEmbedData = (h: (typeof allHighlights)[number]): HighlightEmbedData => ({
     quote: h.quote,
     wholeNote: h.wholeNote,
@@ -70,8 +129,26 @@ export default async function InsightDetailPage({
         <div className="flex-1">
           <InsightTitle insightId={insight.id} initialTitle={insight.title} />
         </div>
+        {isAiEnabled() && isEmbeddingsEnabled() && (
+          <CheckConflictsButton insightId={insight.id} />
+        )}
         <InsightActions insightId={insight.id} />
       </div>
+
+      {conflictViews.length > 0 && (
+        <div className="flex flex-col gap-2">
+          {conflictViews.map((c) => (
+            <InsightConflictBanner
+              key={c.id}
+              conflictId={c.id}
+              severity={c.severity}
+              explanation={c.explanation}
+              href={c.href}
+              sourceTitle={c.sourceTitle}
+            />
+          ))}
+        </div>
+      )}
 
       {fields.length > 0 && (
         <div className="grid grid-cols-2 gap-3 rounded-lg border p-3 sm:grid-cols-3">

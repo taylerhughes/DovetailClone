@@ -23,20 +23,23 @@ export async function replaceChunksForSubject(
   projectId: string,
   chunks: ChunkToStore[],
 ): Promise<void> {
-  await db.$executeRaw`
-    DELETE FROM "EmbeddingChunk"
-    WHERE "subjectType" = ${subjectType}::"EmbeddingSubjectType" AND "subjectId" = ${subjectId}
-  `;
-
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    await db.$executeRaw`
-      INSERT INTO "EmbeddingChunk"
-        ("id", "projectId", "subjectType", "subjectId", "chunkIndex", "chunkText", "embedding", "model", "updatedAt")
-      VALUES
-        (gen_random_uuid()::text, ${projectId}, ${subjectType}::"EmbeddingSubjectType", ${subjectId}, ${i}, ${chunk.text}, ${toVectorLiteral(chunk.embedding)}::vector, ${EMBEDDING_MODELS.embed}, now())
-    `;
-  }
+  // Wrapped in a transaction so a mid-write failure (e.g. a caller passing
+  // fewer embeddings than chunks) can't leave the subject with the old
+  // chunks deleted but the new ones only partially inserted.
+  await db.$transaction([
+    db.$executeRaw`
+      DELETE FROM "EmbeddingChunk"
+      WHERE "subjectType" = ${subjectType}::"EmbeddingSubjectType" AND "subjectId" = ${subjectId}
+    `,
+    ...chunks.map(
+      (chunk, i) => db.$executeRaw`
+        INSERT INTO "EmbeddingChunk"
+          ("id", "projectId", "subjectType", "subjectId", "chunkIndex", "chunkText", "embedding", "model", "updatedAt")
+        VALUES
+          (gen_random_uuid()::text, ${projectId}, ${subjectType}::"EmbeddingSubjectType", ${subjectId}, ${i}, ${chunk.text}, ${toVectorLiteral(chunk.embedding)}::vector, ${EMBEDDING_MODELS.embed}, now())
+      `,
+    ),
+  ]);
 }
 
 export async function deleteChunksForSubject(

@@ -103,6 +103,32 @@ describe("embeddings store", () => {
     await deleteChunksForSubject("NOTE", "store-test-n1");
   });
 
+  it("replaceChunksForSubject is atomic: a malformed chunk leaves the prior chunks untouched", async () => {
+    await replaceChunksForSubject("NOTE", "store-test-n2", projectA, [
+      { text: "original chunk", embedding: vec(0.5, 0.5) },
+    ]);
+    let count = await db.embeddingChunk.count({
+      where: { subjectType: "NOTE", subjectId: "store-test-n2" },
+    });
+    expect(count).toBe(1);
+
+    // A missing embedding (e.g. a partial provider response) makes
+    // toVectorLiteral throw while building the query -- before the
+    // transaction's DELETE ever runs.
+    await expect(
+      replaceChunksForSubject("NOTE", "store-test-n2", projectA, [
+        { text: "bad chunk", embedding: undefined as unknown as number[] },
+      ]),
+    ).rejects.toThrow();
+
+    count = await db.embeddingChunk.count({
+      where: { subjectType: "NOTE", subjectId: "store-test-n2" },
+    });
+    expect(count).toBe(1);
+
+    await deleteChunksForSubject("NOTE", "store-test-n2");
+  });
+
   it("similaritySearch returns [] when no projects are accessible", async () => {
     const rows = await similaritySearch({
       queryEmbedding: vec(0.5, 0.5),

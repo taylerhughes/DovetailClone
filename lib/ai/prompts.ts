@@ -43,3 +43,23 @@ export function draftInsightUserPrompt(
     "For each paragraph, list the ids of the highlights (from the brackets above) that support it, so they can be cited inline.",
   ].join("\n");
 }
+
+export function generateThemesSystemPrompt(): string {
+  return "You are a UX research assistant. You group a project's highlights into a handful of synthesized themes based on their content, not just their existing tags. Theme titles should be short and descriptive, distinct from any existing tag name.";
+}
+
+export function generateThemesUserPrompt(
+  highlights: { id: string; quote: string; tags: string[] }[],
+): string {
+  const list = highlights
+    .map((h) => `- [${h.id}] "${h.quote}" (tags: ${h.tags.join(", ") || "none"})`)
+    .join("\n");
+
+  return [
+    "Here are all the highlights in this project:",
+    list,
+    "",
+    "Group these highlights into 3-8 themes. Each theme should have a short title, a 1-2 sentence description of the pattern it captures, and the ids of the highlights (from the brackets above) that belong to it.",
+    "A highlight may belong to more than one theme, or to none if it doesn't fit any clear pattern. Only include highlights that genuinely support each theme.",
+  ].join("\n");
+}

@@ -25,3 +25,14 @@ export const draftInsightResultSchema = z.object({
   ),
 });
 export type DraftInsightResult = z.infer<typeof draftInsightResultSchema>;
+
+export const generateThemesResultSchema = z.object({
+  themes: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      highlightIds: z.array(z.string()).default([]),
+    }),
+  ),
+});
+export type GenerateThemesResult = z.infer<typeof generateThemesResultSchema>;

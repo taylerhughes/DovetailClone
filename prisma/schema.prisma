@@ -120,6 +120,7 @@ model Project {
   views          View[]
   teamMembers    TeamMember[]
   highlightReels HighlightReel[]
+  themes         Theme[]
 
   @@index([userId])
   @@index([organizationId])
@@ -218,6 +219,7 @@ model Highlight {
 
   tagAssignments HighlightTag[]
   insightLinks   InsightHighlight[]
+  themeLinks     ThemeHighlight[]
 
   @@unique([noteId, markId])
   @@index([noteId])
@@ -249,6 +251,29 @@ model InsightHighlight {
   highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
 
   @@id([insightId, highlightId])
+}
+
+model Theme {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  highlightLinks ThemeHighlight[]
+
+  @@index([projectId])
+}
+
+model ThemeHighlight {
+  themeId     String
+  theme       Theme     @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  highlightId String
+  highlight   Highlight @relation(fields: [highlightId], references: [id], onDelete: Cascade)
+
+  @@id([themeId, highlightId])
 }
 
 // ── Tags ───────────────────────────────────────────────────────

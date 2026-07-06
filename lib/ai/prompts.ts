@@ -63,3 +63,41 @@ export function generateThemesUserPrompt(
     "A highlight may belong to more than one theme, or to none if it doesn't fit any clear pattern. Only include highlights that genuinely support each theme.",
   ].join("\n");
 }
+
+export function askResearchSystemPrompt(): string {
+  return "You are a UX research assistant. You answer questions about a user's research repository using only the provided excerpts from their notes, highlights, and insights. Cite every claim you make. If the excerpts don't cover the question, say you don't have enough information rather than guessing.";
+}
+
+export interface AskResearchCandidate {
+  subjectType: "NOTE" | "HIGHLIGHT" | "INSIGHT";
+  subjectId: string;
+  text: string;
+}
+
+export function askResearchUserPrompt(
+  question: string,
+  history: { role: "user" | "assistant"; content: string }[],
+  candidates: AskResearchCandidate[],
+): string {
+  const excerpts = candidates
+    .map((c) => `- [${c.subjectType}:${c.subjectId}] "${c.text}"`)
+    .join("\n");
+
+  const historyText = history.length
+    ? [
+        "Prior conversation turns:",
+        ...history.map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`),
+        "",
+      ]
+    : [];
+
+  return [
+    ...historyText,
+    "Relevant excerpts from the research repository:",
+    excerpts || "(none found)",
+    "",
+    `Question: ${question}`,
+    "",
+    "Answer the question using only the excerpts above. For each claim, cite the excerpt(s) it's drawn from using their [subjectType:subjectId] labels.",
+  ].join("\n");
+}

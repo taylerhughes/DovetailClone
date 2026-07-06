@@ -4,6 +4,7 @@ import {
   summarizeResultSchema,
   draftInsightResultSchema,
   generateThemesResultSchema,
+  askResearchResultSchema,
 } from "./schemas";
 
 describe("suggestTagsResultSchema", () => {
@@ -80,6 +81,37 @@ describe("generateThemesResultSchema", () => {
 
   it("rejects malformed junk from a misbehaving model", () => {
     const result = generateThemesResultSchema.safeParse({ themes: "not an array" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("askResearchResultSchema", () => {
+  it("accepts an answer with citations defaulted", () => {
+    const result = askResearchResultSchema.safeParse({ answer: "Some answer." });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.citations).toEqual([]);
+    }
+  });
+
+  it("accepts a well-formed citation", () => {
+    const result = askResearchResultSchema.safeParse({
+      answer: "Some answer.",
+      citations: [{ subjectType: "HIGHLIGHT", subjectId: "h1" }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an invalid subjectType", () => {
+    const result = askResearchResultSchema.safeParse({
+      answer: "Some answer.",
+      citations: [{ subjectType: "BOGUS", subjectId: "h1" }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a response missing answer", () => {
+    const result = askResearchResultSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 });

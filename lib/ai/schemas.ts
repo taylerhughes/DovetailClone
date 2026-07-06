@@ -36,3 +36,14 @@ export const generateThemesResultSchema = z.object({
   ),
 });
 export type GenerateThemesResult = z.infer<typeof generateThemesResultSchema>;
+
+export const askResearchResultSchema = z.object({
+  answer: z.string(),
+  citations: z.array(
+    z.object({
+      subjectType: z.enum(["NOTE", "HIGHLIGHT", "INSIGHT"]),
+      subjectId: z.string(),
+    }),
+  ).default([]),
+});
+export type AskResearchResult = z.infer<typeof askResearchResultSchema>;

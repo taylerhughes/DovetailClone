@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser, getActiveOrganizationId } from "@/lib/auth/session";
+import { isAiEnabled } from "@/lib/ai/client";
+import { isEmbeddingsEnabled } from "@/lib/embeddings/client";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { OrgSwitcher } from "@/components/organizations/OrgSwitcher";
 
@@ -32,6 +34,15 @@ export async function TopNav() {
             ⌘K
           </kbd>
         </Link>
+        {user && isAiEnabled() && isEmbeddingsEnabled() && (
+          <Link
+            href="/ask"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <Sparkles className="size-4" />
+            Ask AI
+          </Link>
+        )}
         {user ? (
           <>
             <OrgSwitcher

@@ -8,7 +8,7 @@ export default function NotFound() {
       <p className="max-w-sm text-sm text-muted-foreground">
         This page doesn&rsquo;t exist, or it may have been deleted.
       </p>
-      <Button render={<Link href="/" />}>Back to projects</Button>
+      <Button nativeButton={false} render={<Link href="/" />}>Back to projects</Button>
     </main>
   );
 }

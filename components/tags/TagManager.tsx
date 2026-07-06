@@ -141,6 +141,7 @@ export function TagManager({
           size="icon-xs"
           aria-label="View highlights and reels"
           className="ml-auto"
+          nativeButton={false}
           render={<Link href={`/projects/${projectId}/tags/${tag.id}`} />}
         >
           <Video />

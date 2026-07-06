@@ -21,7 +21,7 @@ export async function TopNav() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
       <Link href="/" className="text-sm font-semibold tracking-tight">
-        DovetailClone
+        WillardApp
       </Link>
       <div className="flex items-center gap-4">
         <Link

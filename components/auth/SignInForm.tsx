@@ -50,7 +50,7 @@ export function SignInForm({
     <Card className="w-full max-w-sm">
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
-        <CardDescription>Sign in to your DovetailClone workspace.</CardDescription>
+        <CardDescription>Sign in to your WillardApp workspace.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {(googleEnabled || githubEnabled) && (

@@ -1,6 +1,6 @@
-# DovetailClone
+# Willard
 
-A self-hosted clone of the core [Dovetail](https://dovetail.com) UX research repository: projects containing rich-text notes, tagged highlights, and synthesized insights, viewable as Grid/Board/Table/Canvas/List, plus cross-project search and AI-assisted tagging/summarization.
+A self-hosted UX research repository inspired by [Dovetail](https://dovetail.com): projects containing rich-text notes, tagged highlights, and synthesized insights, viewable as Grid/Board/Table/Canvas/List, plus cross-project search and AI-assisted tagging/summarization.
 
 Multi-tenant with email/password + OAuth sign-in, organizations, and per-project sharing.
 

@@ -52,7 +52,7 @@ export function SignUpForm({
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
         <CardDescription>
-          Get your own private WillardApp workspace.
+          Get your own private Willard workspace.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

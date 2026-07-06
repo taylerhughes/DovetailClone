@@ -3,15 +3,15 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dovetail
-      POSTGRES_PASSWORD: dovetail
-      POSTGRES_DB: dovetailclone
+      POSTGRES_USER: willard
+      POSTGRES_PASSWORD: willard
+      POSTGRES_DB: willard
     ports:
       - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dovetail -d dovetailclone"]
+      test: ["CMD-SHELL", "pg_isready -U willard -d willard"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -23,7 +23,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: "postgresql://dovetail:dovetail@postgres:5432/dovetailclone?schema=public"
+      DATABASE_URL: "postgresql://willard:willard@postgres:5432/willard?schema=public"
       STORAGE_DRIVER: "${STORAGE_DRIVER:-local}"
       STORAGE_LOCAL_DIR: ".data/uploads"
       AWS_S3_BUCKET: "${AWS_S3_BUCKET:-}"

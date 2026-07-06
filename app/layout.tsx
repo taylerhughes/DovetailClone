@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WillardApp",
+  title: "Willard",
   description: "A self-hosted UX research repository.",
 };
 

@@ -15,6 +15,7 @@ import { isAiEnabled } from "@/lib/ai/client";
 import { isTranscriptionEnabled } from "@/lib/transcription/client";
 import { SpeakerMappingPanel } from "@/components/attachments/SpeakerMappingPanel";
 import { extractTranscriptSpeakers } from "@/lib/editor/extractIds";
+import { HighlightClipStrip } from "@/components/highlights/HighlightClipStrip";
 
 export default async function NoteDetailPage({
   params,
@@ -48,6 +49,7 @@ export default async function NoteDetailPage({
   }
 
   const valuesByFieldId = new Map(note.fieldValues.map((v) => [v.fieldId, v]));
+  const tagById = new Map(tags.map((t) => [t.id, t]));
 
   const teamMemberNameById = new Map(teamMembers.map((m) => [m.id, m.name]));
   const speakerMaps = new Map<string, Map<string, string>>();
@@ -114,6 +116,20 @@ export default async function NoteDetailPage({
                     attachment.id,
                   )
                 : [];
+            const clipHighlights = note.highlights
+              .filter(
+                (h) =>
+                  h.attachmentId === attachment.id && h.clipStartSec != null,
+              )
+              .map((h) => ({
+                id: h.id,
+                quote: h.quote,
+                clipStartSec: h.clipStartSec as number,
+                tags: h.tagAssignments
+                  .map((t) => tagById.get(t.tagId))
+                  .filter((t): t is NonNullable<typeof t> => t != null)
+                  .map((t) => ({ id: t.id, name: t.name, color: t.color })),
+              }));
             return (
               <div key={attachment.id} className="flex flex-col gap-2">
                 <MediaPlayer
@@ -128,6 +144,12 @@ export default async function NoteDetailPage({
                       (attachment.speakerMap as Record<string, string> | null) ?? {}
                     }
                     teamMembers={teamMembers}
+                  />
+                )}
+                {attachment.kind === "VIDEO" && (
+                  <HighlightClipStrip
+                    attachmentId={attachment.id}
+                    highlights={clipHighlights}
                   />
                 )}
               </div>

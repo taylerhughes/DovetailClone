@@ -8,6 +8,9 @@ import { syncInsightEmbeddings } from "@/lib/embeddings/sync";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasProjectEditAccess } from "@/lib/auth/authorize";
+import { checkRateLimit } from "@/lib/rateLimit/limiter";
+import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
+import { RATE_LIMITS } from "@/lib/rateLimit/limits";
 
 const bodySchema = z.object({
   projectId: z.string(),
@@ -22,6 +25,11 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(`ai:draft-insight:${user.id}`, RATE_LIMITS.aiHeavy);
+  if (!rateLimit.allowed) {
+    return tooManyRequestsResponse(rateLimit.retryAfterSec);
   }
 
   const parsed = bodySchema.safeParse(await request.json());

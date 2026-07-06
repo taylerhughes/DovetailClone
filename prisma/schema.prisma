@@ -13,13 +13,13 @@ datasource db {
 // ── Auth (Better Auth — generated shape, do not hand-edit field names) ──
 
 model User {
-  id            String    @id
+  id            String         @id
   name          String
   email         String
-  emailVerified Boolean   @default(false)
+  emailVerified Boolean        @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   sessions      Session[]
   accounts      Account[]
   projects      Project[]
@@ -113,11 +113,11 @@ model Project {
 
   shares ProjectShare[]
 
-  notes          Note[]
-  insights       Insight[]
-  tags           Tag[]
-  fields         Field[]
-  views          View[]
+  notes           Note[]
+  insights        Insight[]
+  tags            Tag[]
+  fields          Field[]
+  views           View[]
   teamMembers     TeamMember[]
   highlightReels  HighlightReel[]
   themes          Theme[]
@@ -210,10 +210,10 @@ model Highlight {
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
 
-  attachmentId String?
-  attachment   Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
-  clipStartSec Float?
-  clipEndSec   Float?
+  attachmentId        String?
+  attachment          Attachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+  clipStartSec        Float?
+  clipEndSec          Float?
   /// cached storage key for the extracted-frame clip thumbnail, generated
   /// lazily by GET /api/highlights/[id]/thumbnail on first request
   thumbnailStorageKey String?
@@ -604,7 +604,7 @@ model EmbeddingChunk {
   // actions) explicitly clean these up via lib/embeddings/cleanup.ts.
   subjectType EmbeddingSubjectType
   subjectId   String
-  chunkIndex  Int    @default(0)
+  chunkIndex  Int                  @default(0)
   chunkText   String
 
   /// plain (non-generated) pgvector column -- only lib/embeddings/store.ts's
@@ -618,4 +618,24 @@ model EmbeddingChunk {
 
   @@unique([subjectType, subjectId, chunkIndex])
   @@index([projectId])
+}
+
+model RateLimit {
+  id          String @id
+  key         String
+  count       Int
+  lastRequest BigInt
+
+  @@unique([key])
+  @@map("rateLimit")
+}
+
+/// App-level rate limiting for authenticated routes Better Auth doesn't own
+/// (AI/embeddings calls, uploads) -- distinct from the Better Auth-managed
+/// `RateLimit` table above, which is scoped to auth endpoints only. Fixed-
+/// window counter, reset atomically via a single upsert in lib/rateLimit.
+model RateLimitBucket {
+  key         String   @id
+  windowStart DateTime
+  count       Int      @default(0)
 }

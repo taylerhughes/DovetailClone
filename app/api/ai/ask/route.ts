@@ -8,6 +8,9 @@ import { similaritySearch } from "@/lib/embeddings/store";
 import { getAccessibleProjectIds } from "@/lib/embeddings/accessScope";
 import { answerResearchQuestion } from "@/lib/ai/chat";
 import { getCurrentUser } from "@/lib/auth/session";
+import { checkRateLimit } from "@/lib/rateLimit/limiter";
+import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
+import { RATE_LIMITS } from "@/lib/rateLimit/limits";
 
 const K = 12;
 
@@ -30,6 +33,11 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(`ai:ask:${user.id}`, RATE_LIMITS.aiChat);
+  if (!rateLimit.allowed) {
+    return tooManyRequestsResponse(rateLimit.retryAfterSec);
   }
 
   const parsed = bodySchema.safeParse(await request.json());

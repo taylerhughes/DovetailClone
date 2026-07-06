@@ -5,6 +5,9 @@ import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasProjectEditAccess } from "@/lib/auth/authorize";
+import { checkRateLimit } from "@/lib/rateLimit/limiter";
+import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
+import { RATE_LIMITS } from "@/lib/rateLimit/limits";
 
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 // Video/audio need a much higher ceiling than documents/images — a research
@@ -42,6 +45,11 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = await checkRateLimit(`upload:${user.id}`, RATE_LIMITS.upload);
+    if (!rateLimit.allowed) {
+      return tooManyRequestsResponse(rateLimit.retryAfterSec);
     }
 
     const formData = await request.formData();

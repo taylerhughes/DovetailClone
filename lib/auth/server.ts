@@ -10,6 +10,22 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  rateLimit: {
+    // Rate limiting is only enabled by default in production; enable it
+    // everywhere so dev/staging environments get the same protection.
+    enabled: true,
+    storage: "database",
+    window: 60,
+    max: 30,
+    customRules: {
+      // Stricter limits on the endpoints most attractive to brute-force /
+      // account-enumeration attacks.
+      "/sign-in/email": { window: 60, max: 5 },
+      "/sign-up/email": { window: 60, max: 5 },
+      "/forget-password": { window: 60, max: 3 },
+      "/reset-password": { window: 60, max: 5 },
+    },
+  },
   plugins: [
     organization({
       // Teams are a separate sub-feature of this plugin (project-team

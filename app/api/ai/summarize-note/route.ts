@@ -5,6 +5,9 @@ import { isAiEnabled } from "@/lib/ai/client";
 import { summarizeNote } from "@/lib/ai/summarize";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasProjectViewAccess } from "@/lib/auth/authorize";
+import { checkRateLimit } from "@/lib/rateLimit/limiter";
+import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
+import { RATE_LIMITS } from "@/lib/rateLimit/limits";
 
 const bodySchema = z.object({
   noteId: z.string(),
@@ -18,6 +21,11 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(`ai:summarize-note:${user.id}`, RATE_LIMITS.aiLight);
+  if (!rateLimit.allowed) {
+    return tooManyRequestsResponse(rateLimit.retryAfterSec);
   }
 
   const parsed = bodySchema.safeParse(await request.json());

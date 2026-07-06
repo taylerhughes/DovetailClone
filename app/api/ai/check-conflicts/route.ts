@@ -8,6 +8,9 @@ import { similaritySearch } from "@/lib/embeddings/store";
 import { detectConflicts } from "@/lib/ai/conflicts";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasProjectEditAccess } from "@/lib/auth/authorize";
+import { checkRateLimit } from "@/lib/rateLimit/limiter";
+import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
+import { RATE_LIMITS } from "@/lib/rateLimit/limits";
 
 const K = 15;
 
@@ -26,6 +29,11 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await checkRateLimit(`ai:check-conflicts:${user.id}`, RATE_LIMITS.aiHeavy);
+  if (!rateLimit.allowed) {
+    return tooManyRequestsResponse(rateLimit.retryAfterSec);
   }
 
   const parsed = bodySchema.safeParse(await request.json());

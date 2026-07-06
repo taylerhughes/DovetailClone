@@ -51,6 +51,17 @@ export async function POST(request: Request) {
       })),
     );
 
+    if (themes.length === 0) {
+      return NextResponse.json(
+        { error: "AI could not generate any themes from this project's highlights" },
+        { status: 502 },
+      );
+    }
+
+    // Only replace the existing theme set once we have a new one to put in its
+    // place -- an empty `themes` result (malformed AI response, or every
+    // theme filtered out for having no valid highlights) must never wipe a
+    // project's prior themes with nothing to show for it.
     await db.$transaction([
       db.theme.deleteMany({ where: { projectId } }),
       ...themes.map((theme) =>

@@ -6,6 +6,8 @@ import { OrgNameInput } from "@/components/organizations/OrgNameInput";
 import { OrgMembersPanel } from "@/components/organizations/OrgMembersPanel";
 import { InviteMemberPanel } from "@/components/organizations/InviteMemberPanel";
 import { LeaveOrgButton } from "@/components/organizations/LeaveOrgButton";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 
 export default async function OrganizationDetailPage({
   params,
@@ -37,11 +39,8 @@ export default async function OrganizationDetailPage({
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
       <div>
-        <Link
-          href="/organizations"
-          className="text-xs text-muted-foreground hover:text-foreground"
-        >
-          ← Organizations
+        <Link href="/organizations">
+          <Text as="span" size={75} color="subdued">← Organizations</Text>
         </Link>
         <div className="mt-1">
           <OrgNameInput orgId={organization.id} initialName={organization.name} />
@@ -49,7 +48,7 @@ export default async function OrganizationDetailPage({
       </div>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Members</h2>
+        <Heading level={2} size={75} color="subdued">Members</Heading>
         <OrgMembersPanel
           orgId={orgId}
           currentUserId={user.id}
@@ -64,7 +63,7 @@ export default async function OrganizationDetailPage({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Invite people</h2>
+        <Heading level={2} size={75} color="subdued">Invite people</Heading>
         <InviteMemberPanel
           orgId={orgId}
           invitations={invitations.map((i) => ({

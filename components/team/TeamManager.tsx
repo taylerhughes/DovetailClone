@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   createTeamMember,
@@ -54,10 +55,7 @@ export function TeamManager({
       )}
 
       {initialMembers.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No team members yet. Add people to assign them to notes via the
-          Person field type.
-        </p>
+        <Text size={100} color="subdued">No team members yet. Add people to assign them to notes via the Person field type.</Text>
       ) : (
         <div className="flex flex-col divide-y rounded-lg border">
           {initialMembers.map((member) => (

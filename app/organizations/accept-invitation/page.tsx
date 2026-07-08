@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth/session";
 import { AcceptInvitationButton } from "@/components/organizations/AcceptInvitationButton";
+import { Text } from "@/components/ui/text";
 
 export default async function AcceptInvitationPage({
   searchParams,
@@ -28,21 +29,18 @@ export default async function AcceptInvitationPage({
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="flex w-full max-w-sm flex-col items-center gap-3 text-center">
         {!invitation || !isValid ? (
-          <p className="text-sm text-muted-foreground">
-            This invitation link is invalid or has expired.
-          </p>
+          <Text size={100} color="subdued">This invitation link is invalid or has expired.</Text>
         ) : !isForThisUser ? (
-          <p className="text-sm text-muted-foreground">
-            This invitation was sent to {invitation.email}. Sign in with that
-            email address to accept it.
-          </p>
+          <Text size={100} color="subdued">
+            This invitation was sent to {invitation.email}. Sign in with that email address to accept it.
+          </Text>
         ) : (
           <>
-            <p className="text-sm">
+            <Text size={100}>
               You&rsquo;ve been invited to join{" "}
-              <span className="font-medium">{invitation.organization.name}</span>{" "}
+              <Text as="span" size={100} weight="medium">{invitation.organization.name}</Text>{" "}
               as {invitation.role ?? "a member"}.
-            </p>
+            </Text>
             <AcceptInvitationButton
               invitationId={invitation.id}
               organizationId={invitation.organization.id}

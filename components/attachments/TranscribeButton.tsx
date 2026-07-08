@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Captions } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { toast } from "sonner";
 import { transcribeAttachment } from "@/actions/transcription";
 
@@ -63,13 +64,13 @@ export function TranscribeButton({
 
   if (status === "DONE") {
     return (
-      <span className="text-xs text-muted-foreground">Transcribed</span>
+      <Text as="span" size={75} color="subdued">Transcribed</Text>
     );
   }
 
   if (status === "PENDING" || status === "PROCESSING") {
     return (
-      <span className="text-xs text-muted-foreground">Transcribing…</span>
+      <Text as="span" size={75} color="subdued">Transcribing…</Text>
     );
   }
 

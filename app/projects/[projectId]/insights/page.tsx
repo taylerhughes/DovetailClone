@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Text } from "@/components/ui/text";
 import { NewInsightButton } from "@/components/insights/NewInsightButton";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { ViewConfigPanel } from "@/components/views/ViewConfigPanel";
@@ -134,10 +135,8 @@ export default async function InsightsPage({
           if (!groupField || !["SINGLE_SELECT", "MULTI_SELECT", "PERSON"].includes(groupField.type)) {
             return (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-                <p className="text-sm font-medium">Pick a group-by field</p>
-                <p className="text-sm text-muted-foreground">
-                  Use Configure to choose a select or person field to group by.
-                </p>
+                <Text size={100} weight="medium">Pick a group-by field</Text>
+                <Text size={100} color="subdued">Use Configure to choose a select or person field to group by.</Text>
               </div>
             );
           }

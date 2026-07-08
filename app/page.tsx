@@ -5,6 +5,8 @@ import { CapNotice } from "@/components/ui/CapNotice";
 import { LIST_RESULT_CAP } from "@/lib/constants";
 import { requireUser } from "@/lib/auth/session";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 
 export default async function Home() {
   const user = await requireUser();
@@ -41,7 +43,7 @@ export default async function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Projects</h1>
+        <Heading level={1} size={700}>Projects</Heading>
         <CreateProjectDialog
           organizations={memberships.map((m) => m.organization)}
         />
@@ -49,10 +51,8 @@ export default async function Home() {
 
       {projects.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-          <p className="text-sm font-medium">No projects yet</p>
-          <p className="text-sm text-muted-foreground">
-            Create a project to start collecting research.
-          </p>
+          <Text size={100} weight="medium">No projects yet</Text>
+          <Text size={100} color="subdued">Create a project to start collecting research.</Text>
         </div>
       ) : (
         <>

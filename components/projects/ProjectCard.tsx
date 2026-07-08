@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 
 export function ProjectCard({
   id,
@@ -23,9 +24,11 @@ export function ProjectCard({
             {description || "No description"}
           </CardDescription>
         </CardHeader>
-        <div className="px-6 pb-6 text-xs text-muted-foreground">
-          {noteCount} {noteCount === 1 ? "note" : "notes"} · {insightCount}{" "}
-          {insightCount === 1 ? "insight" : "insights"}
+        <div className="px-6 pb-6">
+          <Text as="span" size={75} color="subdued">
+            {noteCount} {noteCount === 1 ? "note" : "notes"} · {insightCount}{" "}
+            {insightCount === 1 ? "insight" : "insights"}
+          </Text>
         </div>
       </Card>
     </Link>

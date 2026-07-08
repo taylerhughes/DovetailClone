@@ -7,6 +7,8 @@ import { ShareDialog } from "@/components/projects/ShareDialog";
 import { requireUser } from "@/lib/auth/session";
 import { requireProjectViewAccess } from "@/lib/auth/authorize";
 import { ProjectAccessProvider } from "@/components/projects/ProjectAccessContext";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 
 export default async function ProjectLayout({
   children,
@@ -38,15 +40,10 @@ export default async function ProjectLayout({
         <div className="border-b px-8 pt-6">
           <div className="mx-auto flex w-full max-w-5xl items-start justify-between">
             <div>
-              <Link
-                href="/"
-                className="text-xs text-muted-foreground hover:text-foreground"
-              >
-                ← All projects
+              <Link href="/">
+                <Text as="span" size={75} color="subdued">← All projects</Text>
               </Link>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight">
-                {project.name}
-              </h1>
+              <Heading level={1} size={700} className="mt-1">{project.name}</Heading>
             </div>
             <div className="flex items-center gap-2">
               {level === "owner" && (

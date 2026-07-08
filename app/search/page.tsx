@@ -3,6 +3,8 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { searchAll } from "@/lib/search";
 import { requireUser } from "@/lib/auth/session";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 
 export default async function SearchPage({
   searchParams,
@@ -31,13 +33,9 @@ export default async function SearchPage({
       </form>
 
       {!results ? (
-        <p className="text-sm text-muted-foreground">
-          Start typing and press Enter to search everything in your workspace.
-        </p>
+        <Text size={100} color="subdued">Start typing and press Enter to search everything in your workspace.</Text>
       ) : totalCount === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No results for &ldquo;{query}&rdquo;.
-        </p>
+        <Text size={100} color="subdued">No results for &ldquo;{query}&rdquo;.</Text>
       ) : (
         <div className="flex flex-col gap-6">
           {results.notes.length > 0 && (
@@ -96,9 +94,7 @@ function ResultSection({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {title}
-      </h2>
+      <Heading level={2} size={75} color="subdued" className="tracking-wide uppercase">{title}</Heading>
       <div className="flex flex-col divide-y rounded-lg border">{children}</div>
     </div>
   );
@@ -118,14 +114,10 @@ function ResultRow({
   return (
     <Link href={href} className="flex flex-col gap-1 p-3 hover:bg-muted/50">
       <div className="flex items-center justify-between gap-2">
-        <span className="line-clamp-1 text-sm font-medium">{title}</span>
-        <span className="shrink-0 text-xs text-muted-foreground">
-          {projectName}
-        </span>
+        <Text as="span" size={100} weight="medium" className="line-clamp-1">{title}</Text>
+        <Text as="span" size={75} color="subdued" className="shrink-0">{projectName}</Text>
       </div>
-      <span className="line-clamp-1 text-xs text-muted-foreground">
-        {subtitle || "Empty"}
-      </span>
+      <Text as="span" size={75} color="subdued" className="line-clamp-1">{subtitle || "Empty"}</Text>
     </Link>
   );
 }

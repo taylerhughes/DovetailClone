@@ -96,11 +96,19 @@ async function processTranscription(attachmentId: string) {
       throw new Error(transcript.error ?? "Transcription failed");
     }
 
+    // Build a lookup of word timings keyed by utterance, matched by time range.
+    // AssemblyAI returns a flat `transcript.words` array; each word has a
+    // `speaker` field when speaker_labels is enabled, so we group by utterance
+    // using the utterance's [start, end] window.
+    const allWords = transcript.words ?? [];
     const utterances = (transcript.utterances ?? []).map((u) => ({
       speaker: u.speaker,
       text: u.text,
       startSec: u.start / 1000,
       endSec: u.end / 1000,
+      words: allWords
+        .filter((w) => w.start >= u.start && w.end <= u.end)
+        .map((w) => ({ text: w.text, startSec: w.start / 1000, endSec: w.end / 1000 })),
     }));
     const segments = buildTranscriptSegments(utterances, attachmentId);
 

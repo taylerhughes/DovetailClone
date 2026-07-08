@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Text } from "@/components/ui/text";
 import { NewNoteButton } from "@/components/notes/NewNoteButton";
 import { ViewSwitcher } from "@/components/views/ViewSwitcher";
 import { ViewConfigPanel } from "@/components/views/ViewConfigPanel";
@@ -59,7 +60,15 @@ export default async function DataPage({
       where,
       orderBy: { updatedAt: "desc" },
       take: hasCustomSort ? undefined : LIST_RESULT_CAP,
-      include: { fieldValues: { include: { selectedOptions: true } } },
+      include: {
+        fieldValues: { include: { selectedOptions: true } },
+        attachments: {
+          where: { kind: "VIDEO" },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+          select: { id: true },
+        },
+      },
     }),
     db.note.count({ where }),
   ]);
@@ -113,7 +122,15 @@ export default async function DataPage({
 
       <CapNotice shown={notes.length} total={totalNotes} />
 
-      {layout === "GRID" && <GridView basePath={basePath} records={notes} />}
+      {layout === "GRID" && (
+        <GridView
+          basePath={basePath}
+          records={notes.map((n) => ({
+            ...n,
+            videoAttachmentId: n.attachments[0]?.id ?? null,
+          }))}
+        />
+      )}
       {layout === "LIST" && <ListView basePath={basePath} records={notes} />}
       {layout === "TABLE" && (
         <TableView
@@ -131,10 +148,8 @@ export default async function DataPage({
           if (!groupField || !["SINGLE_SELECT", "MULTI_SELECT", "PERSON"].includes(groupField.type)) {
             return (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-                <p className="text-sm font-medium">Pick a group-by field</p>
-                <p className="text-sm text-muted-foreground">
-                  Use Configure to choose a select or person field to group by.
-                </p>
+                <Text size={100} weight="medium">Pick a group-by field</Text>
+                <Text size={100} color="subdued">Use Configure to choose a select or person field to group by.</Text>
               </div>
             );
           }

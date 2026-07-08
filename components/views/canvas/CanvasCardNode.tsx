@@ -4,6 +4,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import type { NodeProps } from "@xyflow/react";
 import { Card, CardHeader, CardDescription } from "@/components/ui/card";
+import { Text } from "@/components/ui/text";
 
 export interface CanvasCardData extends Record<string, unknown> {
   href: string;
@@ -20,9 +21,7 @@ export function CanvasCardNode({ data }: NodeProps) {
     <Card className="w-56 cursor-default">
       <CardHeader className="gap-0.5 p-3">
         <div className="flex items-start justify-between gap-1">
-          <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-            {kind}
-          </span>
+          <Text as="span" size={50} weight="medium" color="subdued" className="tracking-wide uppercase">{kind}</Text>
           <button
             aria-label="Remove from canvas"
             onClick={onRemove}
@@ -31,8 +30,8 @@ export function CanvasCardNode({ data }: NodeProps) {
             <X className="size-3" />
           </button>
         </div>
-        <Link href={href} className="text-sm font-medium hover:underline">
-          {title}
+        <Link href={href} className="hover:underline">
+          <Text as="span" size={100} weight="medium">{title}</Text>
         </Link>
         <CardDescription className="line-clamp-3 text-xs">
           {subtitle}

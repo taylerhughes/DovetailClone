@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Text as TypographyText } from "@/components/ui/text";
 import {
   useReactTable,
   getCoreRowModel,
@@ -108,9 +109,7 @@ export function TableView({
     columnHelper.accessor("updatedAt", {
       header: "Updated",
       cell: (info) => (
-        <span className="text-xs text-muted-foreground">
-          {info.getValue().toLocaleDateString()}
-        </span>
+        <TypographyText as="span" size={75} color="subdued">{info.getValue().toLocaleDateString()}</TypographyText>
       ),
     }),
   ];
@@ -124,7 +123,7 @@ export function TableView({
   if (notes.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-        <p className="text-sm font-medium">No notes match this view</p>
+        <TypographyText size={100} weight="medium">No notes match this view</TypographyText>
       </div>
     );
   }

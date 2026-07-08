@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import type { JSONContent } from "@tiptap/react";
 import { db } from "@/lib/db";
-import { NoteEditor } from "@/components/editor/NoteEditor";
 import { NoteTitle } from "@/components/notes/NoteTitle";
 import { NoteActions } from "@/components/notes/NoteActions";
 import { Uploader } from "@/components/attachments/Uploader";
@@ -10,12 +9,15 @@ import { WholeNoteHighlightButton } from "@/components/highlights/WholeNoteHighl
 import { HighlightRow } from "@/components/highlights/HighlightRow";
 import { FieldEditorCell } from "@/components/fields/FieldEditorCell";
 import { setNoteFieldValue } from "@/actions/fieldValues";
-import { SummarizeButton } from "@/components/ai/SummarizeButton";
+import { NoteEditorSection } from "@/components/editor/NoteEditorSection";
 import { isAiEnabled } from "@/lib/ai/client";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 import { isTranscriptionEnabled } from "@/lib/transcription/client";
 import { SpeakerMappingPanel } from "@/components/attachments/SpeakerMappingPanel";
 import { extractTranscriptSpeakers } from "@/lib/editor/extractIds";
 import { HighlightClipStrip } from "@/components/highlights/HighlightClipStrip";
+import { FloatingVideo } from "@/components/playback/FloatingVideo";
 
 export default async function NoteDetailPage({
   params,
@@ -64,6 +66,11 @@ export default async function NoteDetailPage({
     speakerMaps.set(attachment.id, resolved);
   }
 
+  // First transcribed video gets the sticky-left-column treatment
+  const primaryVideo = note.attachments.find(
+    (a) => a.kind === "VIDEO" && a.transcriptionStatus === "DONE",
+  ) ?? null;
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -81,9 +88,7 @@ export default async function NoteDetailPage({
             const fv = valuesByFieldId.get(field.id);
             return (
               <div key={field.id} className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">
-                  {field.name}
-                </span>
+                <Text as="span" size={75} color="subdued">{field.name}</Text>
                 <FieldEditorCell
                   type={field.type}
                   options={field.options}
@@ -106,59 +111,67 @@ export default async function NoteDetailPage({
         </div>
       )}
 
-      {note.attachments.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {note.attachments.map((attachment) => {
-            const speakers =
-              attachment.transcriptionStatus === "DONE"
-                ? extractTranscriptSpeakers(
-                    note.content as JSONContent,
-                    attachment.id,
-                  )
-                : [];
-            const clipHighlights = note.highlights
-              .filter(
-                (h) =>
-                  h.attachmentId === attachment.id && h.clipStartSec != null,
-              )
-              .map((h) => ({
-                id: h.id,
-                quote: h.quote,
-                clipStartSec: h.clipStartSec as number,
-                tags: h.tagAssignments
-                  .map((t) => tagById.get(t.tagId))
-                  .filter((t): t is NonNullable<typeof t> => t != null)
-                  .map((t) => ({ id: t.id, name: t.name, color: t.color })),
-              }));
-            return (
-              <div key={attachment.id} className="flex flex-col gap-2">
-                <MediaPlayer
-                  attachment={attachment}
-                  transcriptionEnabled={isTranscriptionEnabled()}
-                />
-                {speakers.length > 0 && (
-                  <SpeakerMappingPanel
-                    attachmentId={attachment.id}
-                    speakers={speakers}
-                    speakerMap={
-                      (attachment.speakerMap as Record<string, string> | null) ?? {}
-                    }
-                    teamMembers={teamMembers}
-                  />
-                )}
-                {attachment.kind === "VIDEO" && (
-                  <HighlightClipStrip
-                    attachmentId={attachment.id}
-                    highlights={clipHighlights}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {/* All attachments — primary video uses the 3-col grid via NoteEditorSection's leftSlot */}
+      {note.attachments.map((attachment) => {
+        const isPrimary = attachment === primaryVideo;
+        const isDone = attachment.transcriptionStatus === "DONE";
+        const speakers = isDone
+          ? extractTranscriptSpeakers(note.content as JSONContent, attachment.id)
+          : [];
+        const clipHighlights = note.highlights
+          .filter((h) => h.attachmentId === attachment.id && h.clipStartSec != null)
+          .map((h) => ({
+            id: h.id,
+            quote: h.quote,
+            clipStartSec: h.clipStartSec as number,
+            clipEndSec: h.clipEndSec as number | null,
+            tags: h.tagAssignments
+              .map((t) => tagById.get(t.tagId))
+              .filter((t): t is NonNullable<typeof t> => t != null)
+              .map((t) => ({ id: t.id, name: t.name, color: t.color })),
+          }));
 
-      <NoteEditor
+        if (isPrimary) {
+          return (
+            <div key={attachment.id} className="flex flex-col gap-2">
+              {/* FloatingVideo renders a placeholder + one fixed <video> that never moves in the DOM */}
+              <FloatingVideo attachmentId={attachment.id} />
+              <HighlightClipStrip attachmentId={attachment.id} highlights={clipHighlights} />
+              {speakers.length > 0 && (
+                <SpeakerMappingPanel
+                  attachmentId={attachment.id}
+                  speakers={speakers}
+                  speakerMap={(attachment.speakerMap as Record<string, string> | null) ?? {}}
+                  teamMembers={teamMembers}
+                />
+              )}
+            </div>
+          );
+        }
+
+        // Non-primary attachments render full-width above the editor
+        return (
+          <div key={attachment.id} className="flex flex-col gap-2">
+            <MediaPlayer
+              attachment={attachment}
+              transcriptionEnabled={isTranscriptionEnabled()}
+            />
+            {attachment.kind === "VIDEO" && (
+              <HighlightClipStrip attachmentId={attachment.id} highlights={clipHighlights} />
+            )}
+            {speakers.length > 0 && (
+              <SpeakerMappingPanel
+                attachmentId={attachment.id}
+                speakers={speakers}
+                speakerMap={(attachment.speakerMap as Record<string, string> | null) ?? {}}
+                teamMembers={teamMembers}
+              />
+            )}
+          </div>
+        );
+      })}
+
+      <NoteEditorSection
         noteId={note.id}
         projectId={projectId}
         initialContent={note.content as JSONContent}
@@ -169,15 +182,12 @@ export default async function NoteDetailPage({
           markId: h.markId,
           tagIds: h.tagAssignments.map((t) => t.tagId),
         }))}
+        aiEnabled={isAiEnabled()}
       />
-
-      {isAiEnabled() && <SummarizeButton noteId={note.id} />}
 
       {note.highlights.length > 0 && (
         <div className="flex flex-col gap-2 border-t pt-4">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Highlights in this note
-          </h3>
+          <Heading level={3} size={75} color="subdued">Highlights in this note</Heading>
           <div className="flex flex-col gap-2">
             {note.highlights.map((h) => (
               <HighlightRow

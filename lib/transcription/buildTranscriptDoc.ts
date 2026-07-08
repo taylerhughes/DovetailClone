@@ -12,6 +12,7 @@ export function buildTranscriptSegments(
       startSec: u.startSec,
       endSec: u.endSec,
       attachmentId,
+      words: u.words,
     },
     content: u.text ? [{ type: "text", text: u.text }] : [],
   }));

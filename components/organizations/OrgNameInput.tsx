@@ -26,7 +26,7 @@ export function OrgNameInput({
           router.refresh();
         }, 600);
       }}
-      className="w-full border-none bg-transparent text-xl font-semibold tracking-tight outline-none"
+      className="w-full border-none bg-transparent text-fs-700 leading-type-tight font-type-heading font-bold outline-none"
     />
   );
 }

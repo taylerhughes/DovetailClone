@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Text } from "@/components/ui/text";
 import {
   useReactTable,
   getCoreRowModel,
@@ -57,7 +58,7 @@ export function HighlightsTableView({
       cell: (info) => (
         <Link
           href={`/projects/${projectId}/data/${info.row.original.noteId}`}
-          className="text-xs text-muted-foreground hover:underline"
+          className="text-muted-foreground hover:underline"
         >
           {info.getValue()}
         </Link>
@@ -77,9 +78,7 @@ export function HighlightsTableView({
     columnHelper.accessor("createdAt", {
       header: "Created",
       cell: (info) => (
-        <span className="text-xs text-muted-foreground">
-          {info.getValue().toLocaleDateString()}
-        </span>
+        <Text as="span" size={75} color="subdued">{info.getValue().toLocaleDateString()}</Text>
       ),
     }),
   ];
@@ -93,7 +92,7 @@ export function HighlightsTableView({
   if (highlights.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-        <p className="text-sm font-medium">No highlights match this view</p>
+        <Text size={100} weight="medium">No highlights match this view</Text>
       </div>
     );
   }

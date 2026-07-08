@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Text } from "@/components/ui/text";
 
 export function ListView({
   basePath,
@@ -12,7 +13,7 @@ export function ListView({
   if (records.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-        <p className="text-sm font-medium">{emptyLabel}</p>
+        <Text size={100} weight="medium">{emptyLabel}</Text>
       </div>
     );
   }
@@ -25,10 +26,8 @@ export function ListView({
           href={`${basePath}/${record.id}`}
           className="flex flex-col gap-1 p-4 hover:bg-muted/50"
         >
-          <span className="text-sm font-medium">{record.title}</span>
-          <span className="line-clamp-1 text-xs text-muted-foreground">
-            {record.plainText || "Empty"}
-          </span>
+          <Text as="span" size={100} weight="medium">{record.title}</Text>
+          <Text as="span" size={75} color="subdued" className="line-clamp-1">{record.plainText || "Empty"}</Text>
         </Link>
       ))}
     </div>

@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Text } from "@/components/ui/text";
 
 type Citation = {
   subjectType: "NOTE" | "HIGHLIGHT" | "INSIGHT";
@@ -68,29 +69,23 @@ export function AskResearchChat() {
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
         {messages.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Ask a question about your research repository — answers are drawn only
-            from your notes, highlights, and insights, with citations back to the
-            source.
-          </p>
+          <Text size={100} color="subdued">
+            Ask a question about your research repository — answers are drawn only from your notes, highlights, and insights, with citations back to the source.
+          </Text>
         )}
         {messages.map((m, i) =>
           m.role === "user" ? (
-            <div key={i} className="self-end rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
-              {m.content}
+            <div key={i} className="self-end rounded-lg bg-primary px-3 py-2">
+              <Text size={100} color="inverse">{m.content}</Text>
             </div>
           ) : (
             <div key={i} className="flex flex-col gap-2 rounded-lg border p-3">
-              <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+              <Text size={100} className="whitespace-pre-wrap">{m.content}</Text>
               {m.citations.length > 0 && (
                 <div className="flex flex-col gap-1 border-t pt-2">
                   {m.citations.map((c) => (
-                    <Link
-                      key={`${c.subjectType}:${c.subjectId}`}
-                      href={c.href}
-                      className="line-clamp-1 text-xs text-primary hover:underline"
-                    >
-                      {c.sourceTitle}
+                    <Link key={`${c.subjectType}:${c.subjectId}`} href={c.href} className="line-clamp-1 text-primary hover:underline">
+                      <Text as="span" size={75}>{c.sourceTitle}</Text>
                     </Link>
                   ))}
                 </div>
@@ -98,7 +93,7 @@ export function AskResearchChat() {
             </div>
           ),
         )}
-        {loading && <p className="text-sm text-muted-foreground">Thinking…</p>}
+        {loading && <Text size={100} color="subdued">Thinking…</Text>}
       </div>
 
       <div className="flex gap-2">

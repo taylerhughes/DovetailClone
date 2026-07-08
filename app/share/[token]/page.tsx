@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth/session";
 import { RedeemShareLinkButton } from "@/components/projects/RedeemShareLinkButton";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 
 export default async function SharedProjectPage({
   params,
@@ -38,9 +40,7 @@ export default async function SharedProjectPage({
   if (!project || !project.shareLinkEnabled) {
     return (
       <div className="flex flex-1 items-center justify-center p-8">
-        <p className="text-sm text-muted-foreground">
-          This share link is invalid or has been disabled.
-        </p>
+        <Text size={100} color="subdued">This share link is invalid or has been disabled.</Text>
       </div>
     );
   }
@@ -55,43 +55,33 @@ export default async function SharedProjectPage({
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium text-muted-foreground">
-          Shared project
-        </span>
-        <h1 className="text-xl font-semibold tracking-tight">{project.name}</h1>
+        <Text as="span" size={75} weight="medium" color="subdued">Shared project</Text>
+        <Heading level={1} size={700}>{project.name}</Heading>
         {project.description && (
-          <p className="text-sm text-muted-foreground">{project.description}</p>
+          <Text size={100} color="subdued">{project.description}</Text>
         )}
       </div>
 
       {user ? (
         <RedeemShareLinkButton token={token} role={project.shareLinkRole} />
       ) : (
-        <p className="text-sm text-muted-foreground">
-          <Link href="/sign-in" className="text-primary hover:underline">
-            Sign in
-          </Link>{" "}
+        <Text size={100} color="subdued">
+          <Link href="/sign-in" className="text-primary hover:underline">Sign in</Link>{" "}
           or{" "}
-          <Link href="/sign-up" className="text-primary hover:underline">
-            create an account
-          </Link>
+          <Link href="/sign-up" className="text-primary hover:underline">create an account</Link>
           , then revisit this link to get{" "}
           {project.shareLinkRole === "EDITOR" ? "edit" : "view"} access.
-        </p>
+        </Text>
       )}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Notes ({project.notes.length})
-        </h2>
+        <Heading level={2} size={75} color="subdued">Notes ({project.notes.length})</Heading>
         <div className="flex flex-col gap-1.5">
           {project.notes.map((note) => (
             <div key={note.id} className="rounded-md border p-3">
-              <p className="text-sm font-medium">{note.title}</p>
+              <Text size={100} weight="medium">{note.title}</Text>
               {note.plainText && (
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {note.plainText}
-                </p>
+                <Text size={75} color="subdued" className="mt-1 line-clamp-2">{note.plainText}</Text>
               )}
             </div>
           ))}
@@ -99,30 +89,24 @@ export default async function SharedProjectPage({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Highlights ({highlights.length})
-        </h2>
+        <Heading level={2} size={75} color="subdued">Highlights ({highlights.length})</Heading>
         <div className="flex flex-col gap-1.5">
           {highlights.map((h) => (
-            <div key={h.id} className="rounded-md border p-3 text-sm">
-              &ldquo;{h.quote}&rdquo;
+            <div key={h.id} className="rounded-md border p-3">
+              <Text size={100}>&ldquo;{h.quote}&rdquo;</Text>
             </div>
           ))}
         </div>
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Insights ({project.insights.length})
-        </h2>
+        <Heading level={2} size={75} color="subdued">Insights ({project.insights.length})</Heading>
         <div className="flex flex-col gap-1.5">
           {project.insights.map((insight) => (
             <div key={insight.id} className="rounded-md border p-3">
-              <p className="text-sm font-medium">{insight.title}</p>
+              <Text size={100} weight="medium">{insight.title}</Text>
               {insight.plainText && (
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                  {insight.plainText}
-                </p>
+                <Text size={75} color="subdued" className="mt-1 line-clamp-2">{insight.plainText}</Text>
               )}
             </div>
           ))}

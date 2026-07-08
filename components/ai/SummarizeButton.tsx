@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export function SummarizeButton({ noteId }: { noteId: string }) {
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
+  const router = useRouter();
 
   async function handleClick() {
     setLoading(true);
@@ -22,7 +23,8 @@ export function SummarizeButton({ noteId }: { noteId: string }) {
         toast.error(data.error ?? "AI summarization failed");
         return;
       }
-      setSummary(data.summary ?? null);
+      toast.success("Summary added to note");
+      router.refresh();
     } catch {
       toast.error("AI summarization failed");
     } finally {
@@ -31,14 +33,9 @@ export function SummarizeButton({ noteId }: { noteId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <Button variant="outline" size="sm" disabled={loading} onClick={handleClick}>
-        <Sparkles data-icon="inline-start" />
-        {loading ? "Summarizing…" : "Summarize"}
-      </Button>
-      {summary && (
-        <p className="rounded-md border bg-muted/50 p-2 text-sm">{summary}</p>
-      )}
-    </div>
+    <Button variant="outline" size="sm" disabled={loading} onClick={handleClick}>
+      <Sparkles data-icon="inline-start" />
+      {loading ? "Summarizing…" : "Summarize"}
+    </Button>
   );
 }

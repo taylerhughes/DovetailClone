@@ -60,6 +60,17 @@ export const TranscriptSegment = Node.create<TranscriptSegmentOptions>({
           "data-attachment-id": attributes.attachmentId,
         }),
       },
+      words: {
+        default: [],
+        parseHTML: (element) => {
+          const raw = element.getAttribute("data-words");
+          if (!raw) return [];
+          try { return JSON.parse(raw); } catch { return []; }
+        },
+        renderHTML: (attributes) => ({
+          "data-words": JSON.stringify(attributes.words ?? []),
+        }),
+      },
     };
   },
 

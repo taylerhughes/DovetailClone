@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
+import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { TagPicker, type TagOption } from "@/components/tags/TagPicker";
 import { SuggestTagsButton } from "@/components/ai/SuggestTagsButton";
@@ -35,19 +36,15 @@ export function HighlightRow({
   return (
     <div className="flex flex-col gap-2 rounded-lg border p-3">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm">
+        <Text size={100}>
           {highlight.wholeNote && (
-            <span className="mr-1.5 text-xs font-medium text-muted-foreground">
-              Whole note ·
-            </span>
+            <Text as="span" size={75} weight="medium" color="subdued" className="mr-1.5">Whole note ·</Text>
           )}
           &ldquo;{highlight.quote || "(empty)"}&rdquo;
           {highlight.orphaned && (
-            <span className="ml-1.5 text-xs text-muted-foreground">
-              (removed from note)
-            </span>
+            <Text as="span" size={75} color="subdued" className="ml-1.5">(removed from note)</Text>
           )}
-        </p>
+        </Text>
         <Button
           variant="ghost"
           size="icon-xs"
@@ -63,7 +60,7 @@ export function HighlightRow({
       {showSourceLink && (
         <Link
           href={`/projects/${projectId}/data/${highlight.noteId}`}
-          className="text-xs text-primary hover:underline"
+          className="text-fs-75 leading-type-snug font-type-body text-primary hover:underline"
         >
           {highlight.noteTitle}
         </Link>

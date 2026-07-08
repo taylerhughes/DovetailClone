@@ -7,6 +7,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TagBadge } from "@/components/tags/TagBadge";
 import { HighlightDataContext } from "@/components/editor/HighlightDataContext";
+import { Text } from "@/components/ui/text";
 
 export function HighlightEmbedCard({ node, deleteNode, selected }: NodeViewProps) {
   const highlightsById = useContext(HighlightDataContext);
@@ -19,11 +20,11 @@ export function HighlightEmbedCard({ node, deleteNode, selected }: NodeViewProps
       contentEditable={false}
     >
       {!data ? (
-        <p className="text-xs text-muted-foreground">Highlight not found</p>
+        <Text size={75} color="subdued">Highlight not found</Text>
       ) : (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm italic">&ldquo;{data.quote || "(empty)"}&rdquo;</p>
+            <Text size={100} className="italic">&ldquo;{data.quote || "(empty)"}&rdquo;</Text>
             <Button
               variant="ghost"
               size="icon-xs"
@@ -53,11 +54,8 @@ function NoteSourceLink({
   noteTitle: string;
 }) {
   return (
-    <Link
-      href={`../data/${noteId}`}
-      className="text-xs text-primary hover:underline"
-    >
-      From: {noteTitle}
+    <Link href={`../data/${noteId}`} className="text-primary hover:underline">
+      <Text as="span" size={75}>From: {noteTitle}</Text>
     </Link>
   );
 }

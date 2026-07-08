@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -66,16 +67,14 @@ export function ViewSwitcher({
           <Link
             href={`${basePath}?view=${view.id}`}
             className={cn(
-              "rounded-md px-2.5 py-1 text-sm whitespace-nowrap",
+              "rounded-md px-2.5 py-1 text-fs-100 leading-type-normal font-type-body whitespace-nowrap",
               activeViewId === view.id
                 ? "bg-muted font-medium text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
             {view.name}
-            <span className="ml-1.5 text-xs text-muted-foreground">
-              {LAYOUT_LABELS[view.layout]}
-            </span>
+            <Text as="span" size={75} color="subdued" className="ml-1.5">{LAYOUT_LABELS[view.layout]}</Text>
           </Link>
           {canEdit && (
             <button

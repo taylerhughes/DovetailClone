@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Text } from "@/components/ui/text";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -46,12 +47,12 @@ export function HighlightReelCard({
   return (
     <div className="flex flex-col gap-2 rounded-lg border p-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{reel.name}</span>
-        <span className="text-xs text-muted-foreground">
+        <Text as="span" size={100} weight="medium">{reel.name}</Text>
+        <Text as="span" size={75} color="subdued">
           {(status === "PENDING" || status === "PROCESSING") && "Generating…"}
           {status === "DONE" && "Ready"}
           {status === "FAILED" && "Failed"}
-        </span>
+        </Text>
       </div>
       {status === "DONE" && (
         <video
@@ -61,7 +62,7 @@ export function HighlightReelCard({
         />
       )}
       {status === "FAILED" && errorMessage && (
-        <p className="text-xs text-destructive">{errorMessage}</p>
+        <Text size={75} className="text-destructive">{errorMessage}</Text>
       )}
     </div>
   );

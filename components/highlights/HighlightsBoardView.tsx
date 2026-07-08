@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Text } from "@/components/ui/text";
 import {
   DndContext,
   closestCenter,
@@ -75,7 +76,7 @@ function BoardColumn({ column }: { column: GroupColumn<BoardHighlight> }) {
       ref={setNodeRef}
       className={`flex w-64 shrink-0 flex-col gap-2 rounded-lg border p-2 ${isOver ? "bg-muted/50" : ""}`}
     >
-      <div className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
+      <div className="flex items-center gap-1.5 px-1 text-fs-75 font-medium text-muted-foreground leading-type-snug font-type-body">
         {column.color && (
           <span className="size-2 rounded-full" style={{ backgroundColor: column.color }} />
         )}
@@ -109,10 +110,8 @@ function BoardCard({ highlight }: { highlight: BoardHighlight }) {
       }}
     >
       <Card className="p-3">
-        <p className="line-clamp-3 text-sm italic">&ldquo;{highlight.quote || "(empty)"}&rdquo;</p>
-        <CardDescription className="mt-1 text-xs">
-          From: {highlight.noteTitle}
-        </CardDescription>
+        <Text size={100} className="line-clamp-3 italic">&ldquo;{highlight.quote || "(empty)"}&rdquo;</Text>
+        <Text size={75} color="subdued" className="mt-1">From: {highlight.noteTitle}</Text>
       </Card>
     </div>
   );

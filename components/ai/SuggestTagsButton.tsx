@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TagBadge } from "@/components/tags/TagBadge";
+import { Text } from "@/components/ui/text";
 import { toast } from "sonner";
 
 export interface TagSuggestionOption {
@@ -68,7 +69,7 @@ export function SuggestTagsButton({
         <Sparkles />
       </Button>
       {suggestedIds !== null && suggestions.length === 0 && (
-        <span className="text-xs text-muted-foreground">No suggestions</span>
+        <Text as="span" size={75} color="subdued">No suggestions</Text>
       )}
       {suggestions.map((tag) => (
         <button key={tag.id} onClick={() => onAccept(tag.id)} title="Add suggested tag">

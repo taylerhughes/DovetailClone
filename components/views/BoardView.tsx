@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Text } from "@/components/ui/text";
 import {
   DndContext,
   closestCenter,
@@ -100,7 +101,7 @@ function BoardColumn({
       ref={setNodeRef}
       className={`flex w-64 shrink-0 flex-col gap-2 rounded-lg border p-2 ${isOver ? "bg-muted/50" : ""}`}
     >
-      <div className="flex items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground">
+      <div className="flex items-center gap-1.5 px-1 text-fs-75 font-medium text-muted-foreground leading-type-snug font-type-body">
         {column.color && (
           <span
             className="size-2 rounded-full"

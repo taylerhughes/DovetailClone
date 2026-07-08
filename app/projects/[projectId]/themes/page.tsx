@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { isAiEnabled } from "@/lib/ai/client";
+import { Text } from "@/components/ui/text";
 import { ThemeCard } from "@/components/themes/ThemeCard";
 import { RegenerateThemesButton } from "@/components/themes/RegenerateThemesButton";
 
@@ -25,9 +26,7 @@ export default async function ThemesPage({
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          AI-generated groupings of this project&apos;s highlights, distinct from tags.
-        </p>
+        <Text size={100} color="subdued">AI-generated groupings of this project&apos;s highlights, distinct from tags.</Text>
         {isAiEnabled() && (
           <RegenerateThemesButton
             projectId={projectId}
@@ -38,12 +37,12 @@ export default async function ThemesPage({
 
       {themes.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-          <p className="text-sm font-medium">No themes yet</p>
-          <p className="text-sm text-muted-foreground">
+          <Text size={100} weight="medium">No themes yet</Text>
+          <Text size={100} color="subdued">
             {isAiEnabled()
               ? "Click Regenerate themes to cluster this project's highlights into synthesized themes."
               : "AI features are disabled — set ANTHROPIC_API_KEY to enable theme clustering."}
-          </p>
+          </Text>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

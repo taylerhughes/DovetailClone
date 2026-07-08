@@ -9,6 +9,10 @@ import { checkRateLimit } from "@/lib/rateLimit/limiter";
 import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
 import { RATE_LIMITS } from "@/lib/rateLimit/limits";
 
+// Tell Next.js this route can run longer than the default 30s — large video
+// uploads need time to stream the body from the client to S3/storage.
+export const maxDuration = 300;
+
 const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 // Video/audio need a much higher ceiling than documents/images — a research
 // interview recording routinely runs into the hundreds of MB, and rejecting
@@ -112,6 +116,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ attachment });
   } catch (err) {
     console.error("upload failed", err);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Upload failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Share2, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -118,9 +119,7 @@ export function ShareDialog({
 
         <div className="flex flex-col gap-4">
           <section className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              People with access
-            </span>
+            <Text as="span" size={75} weight="medium" color="subdued">People with access</Text>
             <div className="flex items-end gap-2">
               <Input
                 type="email"
@@ -141,10 +140,8 @@ export function ShareDialog({
                   className="flex items-center justify-between gap-2 rounded-md border p-2"
                 >
                   <div className="flex flex-col">
-                    <span className="text-sm">{share.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {share.email}
-                    </span>
+                    <Text as="span" size={100}>{share.name}</Text>
+                    <Text as="span" size={75} color="subdued">{share.email}</Text>
                   </div>
                   <div className="flex items-center gap-1">
                     <RoleSelect
@@ -178,10 +175,8 @@ export function ShareDialog({
           {organizationName && (
             <section className="flex items-center justify-between gap-2 border-t pt-4">
               <div className="flex flex-col">
-                <span className="text-sm">Share with {organizationName}</span>
-                <span className="text-xs text-muted-foreground">
-                  Every member of the organization gets access
-                </span>
+                <Text as="span" size={100}>Share with {organizationName}</Text>
+                <Text as="span" size={75} color="subdued">Every member of the organization gets access</Text>
               </div>
               <div className="flex items-center gap-2">
                 {orgShareEnabled && (
@@ -217,10 +212,8 @@ export function ShareDialog({
           <section className="flex flex-col gap-2 border-t pt-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col">
-                <span className="text-sm">Share link</span>
-                <span className="text-xs text-muted-foreground">
-                  Anyone with the link can access this project
-                </span>
+                <Text as="span" size={100}>Share link</Text>
+                <Text as="span" size={75} color="subdued">Anyone with the link can access this project</Text>
               </div>
               <div className="flex items-center gap-2">
                 {shareLinkEnabled && (
@@ -252,7 +245,7 @@ export function ShareDialog({
               </div>
             </div>
             {shareLinkEnabled && shareUrl && (
-              <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-2 text-xs">
+              <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-2 text-fs-75 leading-type-snug font-type-body">
                 <span className="flex-1 truncate">{shareUrl}</span>
                 <Button
                   variant="ghost"

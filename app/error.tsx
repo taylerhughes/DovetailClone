@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 
 export default function GlobalError({
   error,
@@ -16,11 +17,8 @@ export default function GlobalError({
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-      <p className="text-sm font-medium">Something went wrong</p>
-      <p className="max-w-sm text-sm text-muted-foreground">
-        An unexpected error occurred. You can try again, or head back to the
-        project list.
-      </p>
+      <Text size={100} weight="medium">Something went wrong</Text>
+      <Text size={100} color="subdued" className="max-w-sm">An unexpected error occurred. You can try again, or head back to the project list.</Text>
       <div className="flex gap-2">
         <Button variant="outline" onClick={() => reset()}>
           Try again

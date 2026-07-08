@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 import {
   Select,
   SelectContent,
@@ -93,16 +94,13 @@ export function FieldManager({
       )}
 
       {initialFields.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No custom fields yet. Fields let you add structured metadata to
-          notes and organize them by Board/Table view.
-        </p>
+        <Text size={100} color="subdued">No custom fields yet. Fields let you add structured metadata to notes and organize them by Board/Table view.</Text>
       ) : (
         <div className="flex flex-col divide-y rounded-lg border">
           {initialFields.map((field) => (
             <div key={field.id} className="flex flex-col gap-2 p-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{field.name}</span>
+                <Text as="span" size={100} weight="medium">{field.name}</Text>
                 <Badge variant="secondary">
                   {FIELD_TYPE_LABELS[field.type]}
                 </Badge>

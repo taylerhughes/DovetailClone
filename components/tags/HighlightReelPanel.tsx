@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Clapperboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { Input } from "@/components/ui/input";
 import { createHighlightReel } from "@/actions/highlightReels";
 import { HighlightReelCard } from "@/components/tags/HighlightReelCard";
@@ -56,11 +57,9 @@ export function HighlightReelPanel({
         </Button>
       </div>
       {eligibleCount === 0 && (
-        <p className="text-xs text-muted-foreground">
-          No highlights under this tag have a video/audio clip range yet —
-          highlight text inside a transcribed video/audio note to make one
-          reel-eligible.
-        </p>
+        <Text size={75} color="subdued">
+          No highlights under this tag have a video/audio clip range yet — highlight text inside a transcribed video/audio note to make one reel-eligible.
+        </Text>
       )}
       {reels.length > 0 && (
         <div className="flex flex-col gap-2">

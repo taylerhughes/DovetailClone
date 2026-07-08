@@ -30,12 +30,13 @@ interface SuggestedTagAssignment {
   tags: SuggestedTag[];
 }
 
-function buildCitationNode(number: number): JSONContent {
-  return { type: "citation", attrs: { number } };
+function buildCitationNode(number: number, markId: string | null): JSONContent {
+  return { type: "citation", attrs: { number, markId } };
 }
 
 function buildSummaryBlock(
   paragraphs: { text: string; citedHighlightIndices: number[] }[],
+  highlightMarkIds: (string | null)[],
 ): JSONContent[] {
   return [
     {
@@ -47,7 +48,9 @@ function buildSummaryBlock(
       type: "paragraph",
       content: [
         ...(p.text ? [{ type: "text", text: p.text }] : []),
-        ...p.citedHighlightIndices.map((idx) => buildCitationNode(idx + 1)),
+        ...p.citedHighlightIndices.map((idx) =>
+          buildCitationNode(idx + 1, highlightMarkIds[idx] ?? null),
+        ),
       ],
     })),
     { type: "paragraph", content: [] },
@@ -184,8 +187,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Build the summary block with citations then prepend to the note
-    const summaryBlock = buildSummaryBlock(aiResult.paragraphs);
+    // Build the summary block with citations then prepend to the note.
+    // createdHighlightMarkIds is in the same order as aiResult.highlights so
+    // citedHighlightIndices (0-based) index directly into it.
+    const summaryBlock = buildSummaryBlock(aiResult.paragraphs, createdHighlightMarkIds);
     const newContent: JSONContent = {
       type: "doc",
       content: [...summaryBlock, ...existingChildren],

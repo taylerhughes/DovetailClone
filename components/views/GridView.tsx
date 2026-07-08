@@ -1,4 +1,5 @@
 import { EntityCard } from "@/components/cards/EntityCard";
+import { Text } from "@/components/ui/text";
 
 export function GridView({
   basePath,
@@ -6,13 +7,13 @@ export function GridView({
   emptyLabel = "No notes match this view",
 }: {
   basePath: string;
-  records: { id: string; title: string; plainText: string }[];
+  records: { id: string; title: string; plainText: string; videoAttachmentId?: string | null }[];
   emptyLabel?: string;
 }) {
   if (records.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-        <p className="text-sm font-medium">{emptyLabel}</p>
+        <Text size={100} weight="medium">{emptyLabel}</Text>
       </div>
     );
   }
@@ -25,6 +26,7 @@ export function GridView({
           href={`${basePath}/${record.id}`}
           title={record.title}
           subtitle={record.plainText}
+          thumbnailSrc={record.videoAttachmentId ? `/api/attachments/${record.videoAttachmentId}/thumbnail` : undefined}
         />
       ))}
     </div>

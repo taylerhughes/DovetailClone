@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import {
   Select,
   SelectContent,
@@ -64,8 +65,8 @@ export function OrgMembersPanel({
           className="flex items-center justify-between gap-2 rounded-lg border p-3"
         >
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{member.name}</span>
-            <span className="text-xs text-muted-foreground">{member.email}</span>
+            <Text as="span" size={100} weight="medium">{member.name}</Text>
+            <Text as="span" size={75} color="subdued">{member.email}</Text>
           </div>
           <div className="flex items-center gap-2">
             <Select

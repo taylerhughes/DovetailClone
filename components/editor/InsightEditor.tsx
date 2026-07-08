@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import { Text } from "@/components/ui/text";
 import { updateInsightContent } from "@/actions/insights";
 import { HighlightEmbed } from "@/components/editor/extensions/highlightEmbed";
 import {
@@ -97,9 +98,9 @@ export function InsightEditor({
                 }}
               />
             </div>
-            <span className="text-xs text-muted-foreground">
+            <Text as="span" size={75} color="subdued">
               {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
-            </span>
+            </Text>
           </div>
         )}
         <EditorContent editor={editor} />

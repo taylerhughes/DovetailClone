@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { JSONContent } from "@tiptap/react";
 import { db } from "@/lib/db";
+import { Text } from "@/components/ui/text";
 import { InsightEditor } from "@/components/editor/InsightEditor";
 import { InsightTitle } from "@/components/insights/InsightTitle";
 import { InsightActions } from "@/components/insights/InsightActions";
@@ -156,9 +157,7 @@ export default async function InsightDetailPage({
             const fv = valuesByFieldId.get(field.id);
             return (
               <div key={field.id} className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">
-                  {field.name}
-                </span>
+                <Text as="span" size={75} color="subdued">{field.name}</Text>
                 <FieldEditorCell
                   type={field.type}
                   options={field.options}

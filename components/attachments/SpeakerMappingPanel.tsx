@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Text } from "@/components/ui/text";
 import {
   Select,
   SelectContent,
@@ -27,12 +28,10 @@ export function SpeakerMappingPanel({
 
   return (
     <div className="flex flex-col gap-1.5 rounded-md border p-2">
-      <span className="text-xs font-medium text-muted-foreground">
-        Speakers
-      </span>
+      <Text as="span" size={75} weight="medium" color="subdued">Speakers</Text>
       {speakers.map((speaker) => (
         <div key={speaker} className="flex items-center gap-2">
-          <span className="w-24 shrink-0 text-xs">{speaker}</span>
+          <Text as="span" size={75} className="w-24 shrink-0">{speaker}</Text>
           <Select
             value={speakerMap[speaker] ?? "__none__"}
             onValueChange={async (v) => {

@@ -26,7 +26,14 @@ export function NoteTitle({
           void updateNoteTitle(noteId, value);
         }, 600);
       }}
-      className="w-full border-none bg-transparent text-xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground"
+      className={[
+        "w-full bg-transparent text-fs-700 leading-type-tight font-type-heading font-bold outline-none placeholder:text-muted-foreground",
+        "rounded-md px-2 py-1 -mx-2",
+        "border border-transparent transition-colors",
+        canEdit
+          ? "hover:border-border hover:bg-muted/40 focus:border-border focus:bg-muted/40 focus:ring-2 focus:ring-ring/30 cursor-text"
+          : "cursor-default select-none",
+      ].join(" ")}
       placeholder="Untitled"
     />
   );

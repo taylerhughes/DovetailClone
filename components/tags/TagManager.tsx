@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus, Trash2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
 import {
   Select,
   SelectContent,
@@ -214,9 +215,7 @@ export function TagManager({
       )}
 
       {initialTags.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No tags yet. Tags help you find patterns across highlights.
-        </p>
+        <Text size={100} color="subdued">No tags yet. Tags help you find patterns across highlights.</Text>
       ) : (
         <div className="flex flex-col divide-y rounded-lg border">
           {topLevelTags.map((tag) => (

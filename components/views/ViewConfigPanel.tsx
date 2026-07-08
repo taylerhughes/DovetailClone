@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Settings2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import {
   Popover,
   PopoverContent,
@@ -104,9 +105,7 @@ export function ViewConfigPanel({
       <PopoverContent align="end" className="w-80">
         {layout === "BOARD" && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Group by
-            </span>
+            <Text as="span" size={75} weight="medium" color="subdued">Group by</Text>
             <Select
               value={groupByFieldId ?? "__none__"}
               onValueChange={(v) =>
@@ -138,9 +137,7 @@ export function ViewConfigPanel({
 
         {(layout === "GRID" || layout === "LIST" || layout === "TABLE") && (
           <div className="mt-3 flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-muted-foreground">
-              Sort by
-            </span>
+            <Text as="span" size={75} weight="medium" color="subdued">Sort by</Text>
             <div className="flex gap-1.5">
               <Select
                 value={sortFieldId ?? "__none__"}
@@ -190,15 +187,13 @@ export function ViewConfigPanel({
         )}
 
         <div className="mt-3 flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
-            Filters
-          </span>
+          <Text as="span" size={75} weight="medium" color="subdued">Filters</Text>
           {filterConfig.map((rule, i) => {
             const field = fields.find((f) => f.id === rule.fieldId);
             return (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-md bg-muted px-2 py-1 text-xs"
+                className="flex items-center justify-between rounded-md bg-muted px-2 py-1 text-fs-75 leading-type-snug font-type-body"
               >
                 <span>
                   {field?.name ?? "Unknown field"} {OPERATOR_LABELS[rule.operator]}

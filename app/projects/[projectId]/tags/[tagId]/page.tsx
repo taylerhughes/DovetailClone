@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Heading } from "@/components/ui/heading";
+import { Text } from "@/components/ui/text";
 import { ArrowLeft } from "lucide-react";
 import { db } from "@/lib/db";
 import { TagBadge } from "@/components/tags/TagBadge";
@@ -80,13 +82,9 @@ export default async function TagDetailPage({
       </div>
 
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Highlights tagged &ldquo;{tag.name}&rdquo;
-        </h3>
+        <Heading level={3} size={75} color="subdued">Highlights tagged &ldquo;{tag.name}&rdquo;</Heading>
         {highlights.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No highlights tagged yet.
-          </p>
+          <Text size={100} color="subdued">No highlights tagged yet.</Text>
         ) : (
           <div className="flex flex-col gap-2">
             {highlights.map((h) => (

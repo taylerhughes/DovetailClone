@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { dismissInsightConflict } from "@/actions/insightConflicts";
 import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
+import { Text } from "@/components/ui/text";
 
 const SEVERITY_VARIANT = {
   HIGH: "destructive",
@@ -35,11 +36,11 @@ export function InsightConflictBanner({
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
           <Badge variant={SEVERITY_VARIANT[severity]}>{severity}</Badge>
-          <span className="text-sm font-medium">Possible conflict</span>
+          <Text as="span" size={100} weight="medium">Possible conflict</Text>
         </div>
-        <p className="text-sm text-muted-foreground">{explanation}</p>
-        <Link href={href} className="line-clamp-1 text-xs text-primary hover:underline">
-          {sourceTitle}
+        <Text size={100} color="subdued">{explanation}</Text>
+        <Link href={href} className="line-clamp-1 text-primary hover:underline">
+          <Text as="span" size={75}>{sourceTitle}</Text>
         </Link>
       </div>
       {canEdit && (

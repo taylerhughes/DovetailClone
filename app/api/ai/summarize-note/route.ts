@@ -1,4 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+
+// App Runner's ALB has a fixed 120s request timeout. This endpoint can take
+// longer than that for long transcripts, so we stream the response — sending
+// keep-alive newlines while work is in progress keeps the connection open.
+export const maxDuration = 300;
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { isAiEnabled } from "@/lib/ai/client";
@@ -57,7 +62,7 @@ function buildSummaryBlock(
   ];
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   if (!isAiEnabled()) {
     return NextResponse.json({ error: "AI features are disabled" }, { status: 503 });
   }
@@ -85,25 +90,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });
   }
 
-  // Fetch project tags to pass to the prompt
   const projectTags = await db.tag.findMany({
     where: { projectId: note.projectId },
     select: { id: true, name: true, color: true },
     orderBy: { name: "asc" },
   });
-  // Mutable map — new tags created during this call are added here so later
-  // highlights in the same summarise run reuse them instead of duplicating.
   const tagNameToTag = new Map(projectTags.map((t) => [t.name.toLowerCase(), t]));
   const totalTagCountAtStart = projectTags.length;
 
-  try {
-    const aiResult = await summarizeNote(
-      note.plainText,
-      projectTags.map((t) => t.name),
-    );
-    if (!aiResult) {
-      return NextResponse.json({ error: "AI returned no summary" }, { status: 502 });
-    }
+  // Stream the response so App Runner's 120s ALB timeout doesn't kill long
+  // transcript summarisations. We send keep-alive newlines while the AI call
+  // and DB writes are in progress, then flush the final JSON result.
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const keepAlive = setInterval(() => {
+        try { controller.enqueue(encoder.encode(" ")); } catch { /* stream closed */ }
+      }, 15_000);
+
+      try {
+        const aiResult = await summarizeNote(
+          note.plainText,
+          projectTags.map((t) => t.name),
+        );
+        if (!aiResult) {
+          controller.enqueue(encoder.encode(JSON.stringify({ error: "AI returned no summary" })));
+          controller.close();
+          clearInterval(keepAlive);
+          return;
+        }
 
     const existingContent = note.content as JSONContent | null;
     let existingChildren: JSONContent[] =
@@ -187,24 +202,31 @@ export async function POST(request: Request) {
       }
     }
 
-    // Build the summary block with citations then prepend to the note.
-    // createdHighlightMarkIds is in the same order as aiResult.highlights so
-    // citedHighlightIndices (0-based) index directly into it.
-    const summaryBlock = buildSummaryBlock(aiResult.paragraphs, createdHighlightMarkIds);
-    const newContent: JSONContent = {
-      type: "doc",
-      content: [...summaryBlock, ...existingChildren],
-    };
+        const summaryBlock = buildSummaryBlock(aiResult.paragraphs, createdHighlightMarkIds);
+        const newContent: JSONContent = {
+          type: "doc",
+          content: [...summaryBlock, ...existingChildren],
+        };
 
-    await updateNoteContent(
-      parsed.data.noteId,
-      newContent as unknown as Prisma.InputJsonValue,
-    );
+        await updateNoteContent(
+          parsed.data.noteId,
+          newContent as unknown as Prisma.InputJsonValue,
+        );
 
-    return NextResponse.json({ ok: true, suggestedTagAssignments });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("summarize-note failed", err);
-    return NextResponse.json({ error: msg }, { status: 502 });
-  }
+        controller.enqueue(encoder.encode(JSON.stringify({ ok: true, suggestedTagAssignments })));
+        controller.close();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("summarize-note failed", err);
+        controller.enqueue(encoder.encode(JSON.stringify({ error: msg })));
+        controller.close();
+      } finally {
+        clearInterval(keepAlive);
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "application/json" },
+  });
 }

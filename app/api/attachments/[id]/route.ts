@@ -4,6 +4,7 @@ import { storage } from "@/lib/storage";
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/session";
 import { hasProjectViewAccess, hasProjectEditAccess } from "@/lib/auth/authorize";
+import { createPresignedGetUrl, isPresignedUploadAvailable } from "@/lib/storage/presign";
 
 export async function GET(
   request: Request,
@@ -21,6 +22,19 @@ export async function GET(
   });
   if (!attachment || !(await hasProjectViewAccess(attachment.note.projectId, user.id))) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  // On S3: redirect the browser directly to a presigned GET URL so the file
+  // is served from S3 without passing through App Runner. This is required for
+  // large video files — App Runner would OOM or time out buffering them.
+  if (isPresignedUploadAvailable()) {
+    try {
+      const url = await createPresignedGetUrl(attachment.storageKey);
+      return NextResponse.redirect(url, { status: 302 });
+    } catch (err) {
+      console.error("presigned GET failed", err);
+      return NextResponse.json({ error: "Failed to generate download URL" }, { status: 500 });
+    }
   }
 
   let data;

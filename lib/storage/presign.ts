@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /**
@@ -23,6 +23,16 @@ export async function createPresignedUploadUrl(
   });
 
   return getSignedUrl(client, command, { expiresIn: 300 });
+}
+
+export async function createPresignedGetUrl(key: string): Promise<string> {
+  const bucket = process.env.AWS_S3_BUCKET;
+  const region = process.env.AWS_REGION ?? "us-east-1";
+  if (!bucket) throw new Error("AWS_S3_BUCKET is not set");
+
+  const client = new S3Client({ region });
+  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  return getSignedUrl(client, command, { expiresIn: 3600 });
 }
 
 export function isPresignedUploadAvailable(): boolean {

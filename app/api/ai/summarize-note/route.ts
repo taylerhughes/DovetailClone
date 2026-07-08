@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 
 // App Runner's ALB has a fixed 120s request timeout. This endpoint can take
 // longer than that for long transcripts, so we stream the response — sending
@@ -13,11 +14,12 @@ import { hasProjectViewAccess } from "@/lib/auth/authorize";
 import { checkRateLimit } from "@/lib/rateLimit/limiter";
 import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
 import { RATE_LIMITS } from "@/lib/rateLimit/limits";
-import { updateNoteContent } from "@/actions/notes";
 import { applyHighlightMark } from "@/lib/editor/applyHighlightMark";
 import { colorForIndex } from "@/lib/palette";
+import { docToPlainText } from "@/lib/editor/plainText";
+import { syncHighlightsForNote } from "@/lib/highlights/sync";
+import { syncNoteEmbeddings, syncHighlightEmbeddings } from "@/lib/embeddings/sync";
 import type { JSONContent } from "@tiptap/react";
-import type { Prisma } from "@/lib/generated/prisma/client";
 
 const bodySchema = z.object({
   noteId: z.string(),
@@ -208,10 +210,19 @@ export async function POST(request: NextRequest) {
           content: [...summaryBlock, ...existingChildren],
         };
 
-        await updateNoteContent(
+        const plainText = docToPlainText(newContent as never);
+        const updatedNote = await db.note.update({
+          where: { id: parsed.data.noteId },
+          data: { content: newContent, plainText },
+          select: { projectId: true },
+        });
+        const touchedHighlightIds = await syncHighlightsForNote(
           parsed.data.noteId,
-          newContent as unknown as Prisma.InputJsonValue,
+          newContent,
         );
+        void syncNoteEmbeddings(parsed.data.noteId);
+        void syncHighlightEmbeddings(touchedHighlightIds);
+        revalidatePath(`/projects/${updatedNote.projectId}/data`);
 
         controller.enqueue(encoder.encode(JSON.stringify({ ok: true, suggestedTagAssignments })));
         controller.close();

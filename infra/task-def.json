@@ -1,0 +1,52 @@
+{
+  "family": "dovetailclone-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "taskRoleArn": "arn:aws:iam::692797214798:role/dovetailclone-apprunner-instance",
+  "executionRoleArn": "arn:aws:iam::692797214798:role/dovetailclone-ecs-execution",
+  "containerDefinitions": [
+    {
+      "name": "app",
+      "image": "692797214798.dkr.ecr.eu-west-2.amazonaws.com/dovetailclone:latest",
+      "portMappings": [
+        { "containerPort": 3000, "protocol": "tcp" }
+      ],
+      "essential": true,
+      "environment": [
+        { "name": "NODE_ENV",                  "value": "production" },
+        { "name": "PORT",                      "value": "3000" },
+        { "name": "HOSTNAME",                  "value": "0.0.0.0" },
+        { "name": "AWS_REGION",                "value": "eu-west-2" },
+        { "name": "AWS_S3_BUCKET",             "value": "dovetailclone-uploads-prod" },
+        { "name": "STORAGE_DRIVER",            "value": "s3" },
+        { "name": "ANTHROPIC_MODEL_SUMMARIZE", "value": "claude-sonnet-4-6" },
+        { "name": "ANTHROPIC_MODEL_TAGGING",   "value": "claude-haiku-4-5-20251001" },
+        { "name": "BETTER_AUTH_URL",           "value": "http://dovetailclone-alb-1069383618.eu-west-2.elb.amazonaws.com" }
+      ],
+      "secrets": [
+        { "name": "ANTHROPIC_API_KEY",  "valueFrom": "arn:aws:ssm:eu-west-2:692797214798:parameter/dovetailclone/prod/ANTHROPIC_API_KEY" },
+        { "name": "ASSEMBLYAI_API_KEY", "valueFrom": "arn:aws:ssm:eu-west-2:692797214798:parameter/dovetailclone/prod/ASSEMBLYAI_API_KEY" },
+        { "name": "BETTER_AUTH_SECRET", "valueFrom": "arn:aws:ssm:eu-west-2:692797214798:parameter/dovetailclone/prod/BETTER_AUTH_SECRET" },
+        { "name": "DATABASE_URL",       "valueFrom": "arn:aws:ssm:eu-west-2:692797214798:parameter/dovetailclone/prod/DATABASE_URL" },
+        { "name": "VOYAGE_API_KEY",     "valueFrom": "arn:aws:ssm:eu-west-2:692797214798:parameter/dovetailclone/prod/VOYAGE_API_KEY" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group":         "/ecs/dovetailclone",
+          "awslogs-region":        "eu-west-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -qO- http://localhost:3000/ > /dev/null || exit 1"],
+        "interval": 30,
+        "timeout": 10,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

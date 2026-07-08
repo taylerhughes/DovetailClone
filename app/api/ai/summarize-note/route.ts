@@ -220,6 +220,7 @@ export async function POST(request: NextRequest) {
         );
         void syncNoteEmbeddings(parsed.data.noteId);
         void syncHighlightEmbeddings(touchedHighlightIds);
+        revalidatePath(`/projects/${updatedNote.projectId}/data/${parsed.data.noteId}`);
         revalidatePath(`/projects/${updatedNote.projectId}/data`);
 
         const responseBody = { ok: true, suggestedTagAssignments };

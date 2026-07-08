@@ -18,7 +18,8 @@ export function SummarizeButton({ noteId }: { noteId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ noteId }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      const data = JSON.parse(text.trim());
       if (!res.ok || data.error) {
         toast.error(data.error ?? "AI summarization failed");
         return;

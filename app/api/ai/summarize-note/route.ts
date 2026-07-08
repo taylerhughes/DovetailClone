@@ -8,10 +8,51 @@ import { hasProjectViewAccess } from "@/lib/auth/authorize";
 import { checkRateLimit } from "@/lib/rateLimit/limiter";
 import { tooManyRequestsResponse } from "@/lib/rateLimit/response";
 import { RATE_LIMITS } from "@/lib/rateLimit/limits";
+import { updateNoteContent } from "@/actions/notes";
+import { applyHighlightMark } from "@/lib/editor/applyHighlightMark";
+import { colorForIndex } from "@/lib/palette";
+import type { JSONContent } from "@tiptap/react";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 const bodySchema = z.object({
   noteId: z.string(),
 });
+
+interface SuggestedTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface SuggestedTagAssignment {
+  markId: string;
+  highlightId: string;
+  tags: SuggestedTag[];
+}
+
+function buildCitationNode(number: number): JSONContent {
+  return { type: "citation", attrs: { number } };
+}
+
+function buildSummaryBlock(
+  paragraphs: { text: string; citedHighlightIndices: number[] }[],
+): JSONContent[] {
+  return [
+    {
+      type: "heading",
+      attrs: { level: 2 },
+      content: [{ type: "text", text: "Summary" }],
+    },
+    ...paragraphs.map((p) => ({
+      type: "paragraph",
+      content: [
+        ...(p.text ? [{ type: "text", text: p.text }] : []),
+        ...p.citedHighlightIndices.map((idx) => buildCitationNode(idx + 1)),
+      ],
+    })),
+    { type: "paragraph", content: [] },
+  ];
+}
 
 export async function POST(request: Request) {
   if (!isAiEnabled()) {
@@ -35,17 +76,130 @@ export async function POST(request: Request) {
 
   const note = await db.note.findUnique({
     where: { id: parsed.data.noteId },
-    select: { plainText: true, projectId: true },
+    select: { plainText: true, content: true, projectId: true },
   });
   if (!note || !(await hasProjectViewAccess(note.projectId, user.id))) {
     return NextResponse.json({ error: "Note not found" }, { status: 404 });
   }
 
+  // Fetch project tags to pass to the prompt
+  const projectTags = await db.tag.findMany({
+    where: { projectId: note.projectId },
+    select: { id: true, name: true, color: true },
+    orderBy: { name: "asc" },
+  });
+  // Mutable map — new tags created during this call are added here so later
+  // highlights in the same summarise run reuse them instead of duplicating.
+  const tagNameToTag = new Map(projectTags.map((t) => [t.name.toLowerCase(), t]));
+  const totalTagCountAtStart = projectTags.length;
+
   try {
-    const summary = await summarizeNote(note.plainText);
-    return NextResponse.json({ summary });
+    const aiResult = await summarizeNote(
+      note.plainText,
+      projectTags.map((t) => t.name),
+    );
+    if (!aiResult) {
+      return NextResponse.json({ error: "AI returned no summary" }, { status: 502 });
+    }
+
+    const existingContent = note.content as JSONContent | null;
+    let existingChildren: JSONContent[] =
+      existingContent?.type === "doc" && Array.isArray(existingContent.content)
+        ? existingContent.content
+        : [];
+
+    // Apply highlight marks to the note content for each AI-suggested highlight
+    const highlightCount = await db.highlight.count({
+      where: { noteId: parsed.data.noteId },
+    });
+
+    const suggestedTagAssignments: SuggestedTagAssignment[] = [];
+    const createdHighlightMarkIds: string[] = [];
+
+    for (let i = 0; i < aiResult.highlights.length; i++) {
+      const { quote, suggestedTagNames } = aiResult.highlights[i];
+      if (!quote.trim()) continue;
+
+      const markId = crypto.randomUUID();
+
+      // Apply the mark to the document JSON
+      const updatedDoc = applyHighlightMark(
+        { type: "doc", content: existingChildren },
+        quote,
+        markId,
+      );
+
+      // Only proceed if the mark was actually applied (quote found in doc)
+      const updatedChildren = updatedDoc.content ?? [];
+      const markApplied = JSON.stringify(updatedChildren) !== JSON.stringify(existingChildren);
+
+      if (!markApplied) continue;
+
+      existingChildren = updatedChildren;
+      createdHighlightMarkIds.push(markId);
+
+      // Create the Highlight DB row
+      const highlight = await db.highlight.create({
+        data: {
+          noteId: parsed.data.noteId,
+          markId,
+          quote,
+          order: highlightCount + createdHighlightMarkIds.length,
+        },
+      });
+
+      // Resolve suggested tags — match existing by name, create new ones if needed.
+      // Names already created earlier in this same call are in tagNameToTag already.
+      const resolvedTags: SuggestedTag[] = [];
+      for (const name of suggestedTagNames) {
+        if (!name.trim()) continue;
+        const key = name.trim().toLowerCase();
+        let tag = tagNameToTag.get(key);
+        if (!tag) {
+          // Create a new tag, picking a color based on current total count
+          const color = colorForIndex(totalTagCountAtStart + tagNameToTag.size - projectTags.length);
+          try {
+            tag = await db.tag.create({
+              data: { projectId: note.projectId, name: name.trim(), color },
+              select: { id: true, name: true, color: true },
+            });
+            tagNameToTag.set(key, tag);
+          } catch {
+            // Unique constraint race (another request created same tag) — fetch it
+            const existing = await db.tag.findUnique({
+              where: { projectId_name: { projectId: note.projectId, name: name.trim() } },
+              select: { id: true, name: true, color: true },
+            });
+            if (existing) {
+              tagNameToTag.set(key, existing);
+              tag = existing;
+            }
+          }
+        }
+        if (tag) resolvedTags.push(tag);
+      }
+
+      if (resolvedTags.length > 0) {
+        suggestedTagAssignments.push({ markId, highlightId: highlight.id, tags: resolvedTags });
+      }
+    }
+
+    // Build the summary block with citations then prepend to the note
+    const summaryBlock = buildSummaryBlock(aiResult.paragraphs);
+    const newContent: JSONContent = {
+      type: "doc",
+      content: [...summaryBlock, ...existingChildren],
+    };
+
+    await updateNoteContent(
+      parsed.data.noteId,
+      newContent as unknown as Prisma.InputJsonValue,
+    );
+
+    return NextResponse.json({ ok: true, suggestedTagAssignments });
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.error("summarize-note failed", err);
-    return NextResponse.json({ error: "AI request failed" }, { status: 502 });
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
 }

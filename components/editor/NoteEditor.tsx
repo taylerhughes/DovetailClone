@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { useRouter } from "next/navigation";
 import { useEditor, EditorContent, type JSONContent } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
@@ -8,10 +8,12 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Highlighter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { updateNoteContent } from "@/actions/notes";
 import { createHighlight } from "@/actions/highlights";
 import { HighlightMark } from "@/components/editor/extensions/highlightMark";
 import { TranscriptSegment } from "@/components/editor/extensions/transcriptSegment";
+import { CitationNode } from "@/components/editor/extensions/citationMark";
 import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
 import { findTranscriptClipRange } from "@/lib/editor/transcriptRange";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
@@ -21,6 +23,10 @@ import type { TagOption } from "@/components/tags/TagPicker";
 
 const AUTOSAVE_DELAY_MS = 800;
 
+export interface NoteEditorHandle {
+  confirmHighlight: (markId: string, color: string) => Promise<void>;
+}
+
 export function NoteEditor({
   noteId,
   projectId,
@@ -28,13 +34,15 @@ export function NoteEditor({
   speakerMaps,
   allTags,
   highlights,
+  editorRef,
 }: {
   noteId: string;
   projectId: string;
   initialContent: JSONContent;
   speakerMaps?: Map<string, Map<string, string>>;
   allTags: TagOption[];
-  highlights: { id: string; markId: string | null; tagIds: string[] }[];
+  highlights: { id: string; markId: string | null; tagIds: string[]; provisionalTagIds?: string[] }[];
+  editorRef?: Ref<NoteEditorHandle>;
 }) {
   const router = useRouter();
   const { canEdit } = useProjectAccess();
@@ -70,6 +78,7 @@ export function NoteEditor({
       Placeholder.configure({ placeholder: "Write or paste your notes…" }),
       HighlightMark,
       TranscriptSegment,
+      CitationNode,
     ],
     content: initialContent,
     editorProps: {
@@ -103,6 +112,18 @@ export function NoteEditor({
     },
   });
 
+  useImperativeHandle(editorRef, () => ({
+    confirmHighlight: async (markId: string, color: string) => {
+      if (!editor) return;
+      editor.commands.confirmHighlightMark(markId, color);
+      // Flush the save immediately so the server has the updated mark attrs
+      // (color, ai:false) before router.refresh() overwrites the editor content
+      // with the stale server snapshot.
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      await saveNow(editor.getJSON());
+    },
+  }));
+
   useEffect(() => {
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -125,7 +146,12 @@ export function NoteEditor({
     const current = JSON.stringify(editor.getJSON());
     const next = JSON.stringify(initialContent);
     if (current !== next) {
-      editor.commands.setContent(initialContent);
+      // Defer to avoid calling setContent (which triggers flushSync) while
+      // React is already rendering — happens when router.refresh() causes a
+      // re-render and this effect fires synchronously inside it.
+      setTimeout(() => {
+        if (!editor.isFocused) editor.commands.setContent(initialContent);
+      }, 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, initialContent]);
@@ -172,9 +198,9 @@ export function NoteEditor({
         {canEdit && (
           <div className="flex items-center justify-between">
             <EditorToolbar editor={editor} showHighlightButton={false} />
-            <span className="text-xs text-muted-foreground">
+            <Text as="span" size={75} color="subdued">
               {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
-            </span>
+            </Text>
           </div>
         )}
         {canEdit && (
@@ -192,6 +218,7 @@ export function NoteEditor({
             highlightId={activeHighlightRecord.id}
             anchor={activeHighlight.anchor}
             tagIds={activeHighlightRecord.tagIds}
+            provisionalTagIds={activeHighlightRecord.provisionalTagIds ?? []}
             allTags={allTags}
             onClose={() => setActiveHighlight(null)}
           />

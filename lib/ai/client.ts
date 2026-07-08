@@ -22,5 +22,5 @@ export function getAnthropicClient(): Anthropic {
 
 export const MODELS = {
   tagging: process.env.ANTHROPIC_MODEL_TAGGING || "claude-haiku-4-5-20251001",
-  summarize: process.env.ANTHROPIC_MODEL_SUMMARIZE || "claude-sonnet-5",
+  summarize: process.env.ANTHROPIC_MODEL_SUMMARIZE || "claude-sonnet-4-6",
 };

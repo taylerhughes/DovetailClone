@@ -20,8 +20,39 @@ export function summarizeNoteSystemPrompt(): string {
   return "You are a UX research assistant. You write concise, neutral summaries of raw research notes for a busy stakeholder.";
 }
 
-export function summarizeNoteUserPrompt(text: string): string {
-  return `Summarize the following research note in 2-4 sentences, focusing on what the participant said or did and any notable pain points:\n\n${text}`;
+export function summarizeNoteUserPrompt(text: string, existingTagNames: string[]): string {
+  const tagSection = existingTagNames.length > 0
+    ? [
+        "Existing tags in this project (prefer these before creating new ones):",
+        existingTagNames.map((t) => `  - ${t}`).join("\n"),
+      ].join("\n")
+    : "Existing tags in this project: (none yet — create sensible new ones)";
+
+  return [
+    "Summarize the following research note for a stakeholder.",
+    "",
+    "Step 1 — Highlights: Identify 3-8 key verbatim quotes from the note that are most worth highlighting (direct quotes, important findings, notable moments). For each highlight, suggest exactly 1 tag name — only suggest 2 if the quote genuinely spans two completely distinct research themes and a single tag would be misleading.",
+    "",
+    "Tag naming rules:",
+    "- FIRST check the existing tag list below and reuse any tag that genuinely fits",
+    "- If you suggest the same concept for multiple highlights, use the exact same tag name each time — consistency matters",
+    "- Only create a new tag name if nothing in the existing list fits — new tags should be short (1-3 words), lowercase, descriptive of a research theme (e.g. 'navigation', 'onboarding friction', 'trust')",
+    "- Never invent generic or placeholder names like 'test', 'tag', 'highlight', 'note', or 'misc'",
+    "- Prefer 1 tag per highlight. Do not pad with extra tags.",
+    "- Copy the quote exactly as it appears in the note (verbatim, no paraphrasing)",
+    "",
+    tagSection,
+    "",
+    "Step 2 — Summary: Write 2-4 short paragraphs covering:",
+    "1. What the session was about and who the participant was (if known)",
+    "2. The main things the participant said, did, or felt",
+    "3. Any notable pain points, needs, or surprises",
+    "",
+    "For each paragraph, include the 0-based indices of the highlights (from Step 1) that support it in citedHighlightIndices. Be concise and neutral. Do not use bullet points or headings inside paragraphs.",
+    "",
+    "Note:",
+    text,
+  ].join("\n");
 }
 
 export function draftInsightSystemPrompt(): string {

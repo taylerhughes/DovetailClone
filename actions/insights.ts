@@ -106,8 +106,7 @@ export async function deleteInsight(insightId: string) {
   // The FK cascade only covers InsightConflict rows owned by this insight
   // (insightId). If some other insight's conflict points at this one as the
   // conflicting evidence (conflictingType="INSIGHT"), that's a polymorphic,
-  // FK-less reference needing the same explicit cleanup as the highlight
-  // case in deleteHighlight.
+  // FK-less reference needing the same explicit cleanup as the highlight case.
   await db.insightConflict.deleteMany({
     where: { conflictingType: "INSIGHT", conflictingId: insightId },
   });

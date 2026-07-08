@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+export const summarizeWithHighlightsResultSchema = z.object({
+  paragraphs: z.array(
+    z.object({
+      text: z.string(),
+      citedHighlightIndices: z.array(z.number()).default([]),
+    }),
+  ).min(1),
+  highlights: z.array(
+    z.object({
+      quote: z.string(),
+      suggestedTagNames: z.array(z.string()).default([]),
+    }),
+  ).default([]),
+});
+export type SummarizeWithHighlightsResult = z.infer<typeof summarizeWithHighlightsResultSchema>;
+
 export const suggestTagsResultSchema = z.object({
   tags: z.array(
     z.object({
@@ -11,7 +27,7 @@ export const suggestTagsResultSchema = z.object({
 export type SuggestTagsResult = z.infer<typeof suggestTagsResultSchema>;
 
 export const summarizeResultSchema = z.object({
-  summary: z.string(),
+  paragraphs: z.array(z.string()).min(1),
 });
 export type SummarizeResult = z.infer<typeof summarizeResultSchema>;
 

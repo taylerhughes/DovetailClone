@@ -91,10 +91,9 @@ export async function deleteHighlight(highlightId: string) {
 
   await db.highlight.delete({ where: { id: highlightId } });
   await deleteEmbeddingsForHighlight(highlightId);
-  // InsightConflict.conflictingId is polymorphic (no FK, same limitation as
-  // EmbeddingChunk.subjectId) -- only the owning Insight side cascades via
-  // FK, so a highlight referenced as the *conflicting* evidence needs
-  // explicit cleanup here or its conflict row dangles forever.
+  // InsightConflict.conflictingId is polymorphic (no FK) -- only the owning
+  // Insight side cascades via FK, so a highlight referenced as conflicting
+  // evidence needs explicit cleanup here or its conflict row dangles forever.
   await db.insightConflict.deleteMany({
     where: { conflictingType: "HIGHLIGHT", conflictingId: highlightId },
   });

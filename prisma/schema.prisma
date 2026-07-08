@@ -190,6 +190,8 @@ model Attachment {
   transcriptionError  String?
   /// { [speakerLabel: string]: teamMemberId }
   speakerMap          Json?
+  /// cached storage key for the first-frame thumbnail, generated lazily
+  thumbnailStorageKey String?
 
   clipHighlights Highlight[]
 

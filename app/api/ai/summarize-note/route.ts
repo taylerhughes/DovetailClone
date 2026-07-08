@@ -111,10 +111,12 @@ export async function POST(request: NextRequest) {
       }, 15_000);
 
       try {
+        console.log("[summarize] starting AI call, noteId=", parsed.data.noteId, "plainText.length=", note.plainText?.length ?? 0);
         const aiResult = await summarizeNote(
           note.plainText,
           projectTags.map((t) => t.name),
         );
+        console.log("[summarize] AI done, aiResult=", aiResult ? `${aiResult.highlights.length} highlights, ${aiResult.paragraphs.length} paragraphs` : "null");
         if (!aiResult) {
           controller.enqueue(encoder.encode(JSON.stringify({ error: "AI returned no summary" })));
           controller.close();
@@ -122,100 +124,96 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-    const existingContent = note.content as JSONContent | null;
-    let existingChildren: JSONContent[] =
-      existingContent?.type === "doc" && Array.isArray(existingContent.content)
-        ? existingContent.content
-        : [];
+        const existingContent = note.content as JSONContent | null;
+        let existingChildren: JSONContent[] =
+          existingContent?.type === "doc" && Array.isArray(existingContent.content)
+            ? existingContent.content
+            : [];
 
-    // Apply highlight marks to the note content for each AI-suggested highlight
-    const highlightCount = await db.highlight.count({
-      where: { noteId: parsed.data.noteId },
-    });
+        const highlightCount = await db.highlight.count({
+          where: { noteId: parsed.data.noteId },
+        });
+        console.log("[summarize] existing highlightCount=", highlightCount);
 
-    const suggestedTagAssignments: SuggestedTagAssignment[] = [];
-    const createdHighlightMarkIds: string[] = [];
+        const suggestedTagAssignments: SuggestedTagAssignment[] = [];
+        const createdHighlightMarkIds: string[] = [];
 
-    for (let i = 0; i < aiResult.highlights.length; i++) {
-      const { quote, suggestedTagNames } = aiResult.highlights[i];
-      if (!quote.trim()) continue;
+        for (let i = 0; i < aiResult.highlights.length; i++) {
+          const { quote, suggestedTagNames } = aiResult.highlights[i];
+          if (!quote.trim()) continue;
 
-      const markId = crypto.randomUUID();
+          const markId = crypto.randomUUID();
+          const updatedDoc = applyHighlightMark(
+            { type: "doc", content: existingChildren },
+            quote,
+            markId,
+          );
 
-      // Apply the mark to the document JSON
-      const updatedDoc = applyHighlightMark(
-        { type: "doc", content: existingChildren },
-        quote,
-        markId,
-      );
+          const updatedChildren = updatedDoc.content ?? [];
+          const markApplied = JSON.stringify(updatedChildren) !== JSON.stringify(existingChildren);
+          console.log(`[summarize] highlight[${i}] markApplied=`, markApplied, "quote=", quote.slice(0, 60));
 
-      // Only proceed if the mark was actually applied (quote found in doc)
-      const updatedChildren = updatedDoc.content ?? [];
-      const markApplied = JSON.stringify(updatedChildren) !== JSON.stringify(existingChildren);
+          if (!markApplied) continue;
 
-      if (!markApplied) continue;
+          existingChildren = updatedChildren;
+          createdHighlightMarkIds.push(markId);
 
-      existingChildren = updatedChildren;
-      createdHighlightMarkIds.push(markId);
+          const highlight = await db.highlight.create({
+            data: {
+              noteId: parsed.data.noteId,
+              markId,
+              quote,
+              order: highlightCount + createdHighlightMarkIds.length,
+            },
+          });
 
-      // Create the Highlight DB row
-      const highlight = await db.highlight.create({
-        data: {
-          noteId: parsed.data.noteId,
-          markId,
-          quote,
-          order: highlightCount + createdHighlightMarkIds.length,
-        },
-      });
-
-      // Resolve suggested tags — match existing by name, create new ones if needed.
-      // Names already created earlier in this same call are in tagNameToTag already.
-      const resolvedTags: SuggestedTag[] = [];
-      for (const name of suggestedTagNames) {
-        if (!name.trim()) continue;
-        const key = name.trim().toLowerCase();
-        let tag = tagNameToTag.get(key);
-        if (!tag) {
-          // Create a new tag, picking a color based on current total count
-          const color = colorForIndex(totalTagCountAtStart + tagNameToTag.size - projectTags.length);
-          try {
-            tag = await db.tag.create({
-              data: { projectId: note.projectId, name: name.trim(), color },
-              select: { id: true, name: true, color: true },
-            });
-            tagNameToTag.set(key, tag);
-          } catch {
-            // Unique constraint race (another request created same tag) — fetch it
-            const existing = await db.tag.findUnique({
-              where: { projectId_name: { projectId: note.projectId, name: name.trim() } },
-              select: { id: true, name: true, color: true },
-            });
-            if (existing) {
-              tagNameToTag.set(key, existing);
-              tag = existing;
+          const resolvedTags: SuggestedTag[] = [];
+          for (const name of suggestedTagNames) {
+            if (!name.trim()) continue;
+            const key = name.trim().toLowerCase();
+            let tag = tagNameToTag.get(key);
+            if (!tag) {
+              const color = colorForIndex(totalTagCountAtStart + tagNameToTag.size - projectTags.length);
+              try {
+                tag = await db.tag.create({
+                  data: { projectId: note.projectId, name: name.trim(), color },
+                  select: { id: true, name: true, color: true },
+                });
+                tagNameToTag.set(key, tag);
+              } catch {
+                const existing = await db.tag.findUnique({
+                  where: { projectId_name: { projectId: note.projectId, name: name.trim() } },
+                  select: { id: true, name: true, color: true },
+                });
+                if (existing) {
+                  tagNameToTag.set(key, existing);
+                  tag = existing;
+                }
+              }
             }
+            if (tag) resolvedTags.push(tag);
+          }
+
+          if (resolvedTags.length > 0) {
+            suggestedTagAssignments.push({ markId, highlightId: highlight.id, tags: resolvedTags });
           }
         }
-        if (tag) resolvedTags.push(tag);
-      }
 
-      if (resolvedTags.length > 0) {
-        suggestedTagAssignments.push({ markId, highlightId: highlight.id, tags: resolvedTags });
-      }
-    }
-
+        console.log("[summarize] createdHighlightMarkIds.length=", createdHighlightMarkIds.length, "building summary block");
         const summaryBlock = buildSummaryBlock(aiResult.paragraphs, createdHighlightMarkIds);
         const newContent: JSONContent = {
           type: "doc",
           content: [...summaryBlock, ...existingChildren],
         };
 
+        console.log("[summarize] updating note in DB");
         const plainText = docToPlainText(newContent as never);
         const updatedNote = await db.note.update({
           where: { id: parsed.data.noteId },
           data: { content: newContent, plainText },
           select: { projectId: true },
         });
+        console.log("[summarize] note updated, projectId=", updatedNote.projectId);
         const touchedHighlightIds = await syncHighlightsForNote(
           parsed.data.noteId,
           newContent,
@@ -224,11 +222,14 @@ export async function POST(request: NextRequest) {
         void syncHighlightEmbeddings(touchedHighlightIds);
         revalidatePath(`/projects/${updatedNote.projectId}/data`);
 
-        controller.enqueue(encoder.encode(JSON.stringify({ ok: true, suggestedTagAssignments })));
+        const responseBody = { ok: true, suggestedTagAssignments };
+        console.log("[summarize] done, sending response=", JSON.stringify(responseBody).slice(0, 200));
+        controller.enqueue(encoder.encode(JSON.stringify(responseBody)));
         controller.close();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error("summarize-note failed", err);
+        const stack = err instanceof Error ? err.stack : undefined;
+        console.error("[summarize] FAILED:", msg, stack);
         controller.enqueue(encoder.encode(JSON.stringify({ error: msg })));
         controller.close();
       } finally {

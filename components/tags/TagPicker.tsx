@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Tag as TagIcon, Check, Plus } from "lucide-react";
+import { Tag as TagIcon, Check, Plus, X } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,12 +23,14 @@ export type TagOption = {
 export function TagPicker({
   allTags,
   assignedTagIds,
+  projectId,
   onAssign,
   onUnassign,
   onCreateTag,
 }: {
   allTags: TagOption[];
   assignedTagIds: string[];
+  projectId?: string;
   onAssign: (tagId: string) => Promise<void> | void;
   onUnassign: (tagId: string) => Promise<void> | void;
   onCreateTag: (name: string) => Promise<string>;
@@ -76,13 +79,22 @@ export function TagPicker({
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {assigned.map((tag) => (
-        <button
-          key={tag.id}
-          onClick={() => startTransition(() => onUnassign(tag.id))}
-          title="Remove tag"
-        >
-          <TagBadge name={tag.name} color={tag.color} />
-        </button>
+        <span key={tag.id} className="inline-flex items-center gap-0.5">
+          {projectId ? (
+            <Link href={`/projects/${projectId}/tags/${tag.id}`} onClick={(e) => e.stopPropagation()}>
+              <TagBadge name={tag.name} color={tag.color} />
+            </Link>
+          ) : (
+            <TagBadge name={tag.name} color={tag.color} />
+          )}
+          <button
+            onClick={() => startTransition(() => onUnassign(tag.id))}
+            title="Remove tag"
+            className="rounded-full p-0.5 hover:bg-muted"
+          >
+            <X className="size-3 text-muted-foreground" />
+          </button>
+        </span>
       ))}
 
       <Popover>

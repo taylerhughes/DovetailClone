@@ -5,7 +5,7 @@ import { Sparkles } from "lucide-react";
 import { Text } from "@/components/ui/text";
 import { Popover, PopoverContent } from "@/components/ui/popover";
 import { TagPicker, type TagOption } from "@/components/tags/TagPicker";
-import { addHighlightTag, removeHighlightTag } from "@/actions/highlights";
+import { addHighlightTag, removeHighlightTag, deleteHighlight } from "@/actions/highlights";
 import { createTag } from "@/actions/tags";
 
 export function InlineHighlightTagPopover({
@@ -62,12 +62,18 @@ export function InlineHighlightTagPopover({
         <TagPicker
           allTags={allTags}
           assignedTagIds={acceptedTagIds}
+          projectId={projectId}
           onAssign={async (tagId) => {
             await addHighlightTag(highlightId, tagId);
             router.refresh();
           }}
           onUnassign={async (tagId) => {
+            const remainingCount = acceptedTagIds.filter((id) => id !== tagId).length;
             await removeHighlightTag(highlightId, tagId);
+            if (remainingCount === 0) {
+              await deleteHighlight(highlightId);
+              onClose();
+            }
             router.refresh();
           }}
           onCreateTag={async (name) => {

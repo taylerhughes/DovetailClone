@@ -89,7 +89,7 @@ export default async function SharedProjectPage({
       </section>
 
       <section className="flex flex-col gap-2">
-        <Heading level={2} size={75} color="subdued">Highlights ({highlights.length})</Heading>
+        <Heading level={2} size={75} color="subdued">Tags ({highlights.length})</Heading>
         <div className="flex flex-col gap-1.5">
           {highlights.map((h) => (
             <div key={h.id} className="rounded-md border p-3">

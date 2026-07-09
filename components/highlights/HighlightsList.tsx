@@ -55,7 +55,7 @@ export function HighlightsList({
             <input
               type="checkbox"
               className="mt-4 size-4"
-              aria-label={`Select highlight: ${h.quote}`}
+              aria-label={`Select tag: ${h.quote}`}
               checked={selected.has(h.id)}
               onChange={() => toggle(h.id)}
             />

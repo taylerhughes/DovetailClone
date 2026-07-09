@@ -207,7 +207,7 @@ export function NoteEditor({
           <BubbleMenu editor={editor} className="flex rounded-lg bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
             <Button type="button" variant="ghost" size="sm" onClick={handleAddHighlight}>
               <Highlighter data-icon="inline-start" />
-              Highlight
+              Tag
             </Button>
           </BubbleMenu>
         )}

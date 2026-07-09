@@ -49,21 +49,21 @@ export function HighlightPickerDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" size="sm" />}>
         <Plus data-icon="inline-start" />
-        Insert highlight
+        Insert tag
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Insert highlight</DialogTitle>
+          <DialogTitle>Insert tag</DialogTitle>
         </DialogHeader>
         <Input
           autoFocus
-          placeholder="Search highlights or tags…"
+          placeholder="Search tags…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="flex max-h-80 flex-col gap-1.5 overflow-y-auto">
           {filtered.length === 0 && (
-            <Text size={100} color="subdued" className="p-2">No highlights found.</Text>
+            <Text size={100} color="subdued" className="p-2">No tags found.</Text>
           )}
           {filtered.map((h) => (
             <button

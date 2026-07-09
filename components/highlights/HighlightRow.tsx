@@ -48,7 +48,7 @@ export function HighlightRow({
         <Button
           variant="ghost"
           size="icon-xs"
-          aria-label="Delete highlight"
+          aria-label="Delete tag"
           onClick={() =>
             deleteHighlight(highlight.id).then(() => router.refresh())
           }

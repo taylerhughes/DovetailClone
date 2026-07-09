@@ -82,9 +82,9 @@ export default async function TagDetailPage({
       </div>
 
       <div className="flex flex-col gap-2">
-        <Heading level={3} size={75} color="subdued">Highlights tagged &ldquo;{tag.name}&rdquo;</Heading>
+        <Heading level={3} size={75} color="subdued">Tagged &ldquo;{tag.name}&rdquo;</Heading>
         {highlights.length === 0 ? (
-          <Text size={100} color="subdued">No highlights tagged yet.</Text>
+          <Text size={100} color="subdued">Nothing tagged yet.</Text>
         ) : (
           <div className="flex flex-col gap-2">
             {highlights.map((h) => (

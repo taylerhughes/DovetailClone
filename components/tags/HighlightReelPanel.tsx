@@ -53,12 +53,12 @@ export function HighlightReelPanel({
           }
         >
           <Clapperboard data-icon="inline-start" />
-          Create highlight reel
+          Create reel
         </Button>
       </div>
       {eligibleCount === 0 && (
         <Text size={75} color="subdued">
-          No highlights under this tag have a video/audio clip range yet — highlight text inside a transcribed video/audio note to make one reel-eligible.
+          No tags under this label have a video/audio clip range yet — tag text inside a transcribed video/audio note to make one reel-eligible.
         </Text>
       )}
       {reels.length > 0 && (

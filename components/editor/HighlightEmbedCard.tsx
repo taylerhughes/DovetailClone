@@ -20,7 +20,7 @@ export function HighlightEmbedCard({ node, deleteNode, selected }: NodeViewProps
       contentEditable={false}
     >
       {!data ? (
-        <Text size={75} color="subdued">Highlight not found</Text>
+        <Text size={75} color="subdued">Tag not found</Text>
       ) : (
         <div className="flex flex-col gap-1.5">
           <div className="flex items-start justify-between gap-2">
@@ -28,7 +28,7 @@ export function HighlightEmbedCard({ node, deleteNode, selected }: NodeViewProps
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="Remove embedded highlight"
+              aria-label="Remove embedded tag"
               onClick={() => deleteNode()}
             >
               <Trash2 />

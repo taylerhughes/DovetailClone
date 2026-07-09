@@ -40,7 +40,7 @@ export function InlineHighlightTagPopover({
         side="top"
         className="w-64 p-2.5"
       >
-        <Text size={75} weight="medium" color="subdued" className="mb-1.5">Tag this highlight</Text>
+        <Text size={75} weight="medium" color="subdued" className="mb-1.5">Tag this</Text>
 
         {/* AI-provisional tags — shown with the sparkle pill, not as accepted tags */}
         {provisionalTags.length > 0 && (

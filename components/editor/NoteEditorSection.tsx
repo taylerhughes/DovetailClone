@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { addHighlightTag, deleteHighlight } from "@/actions/highlights";
 import { NoteEditor, type NoteEditorHandle } from "@/components/editor/NoteEditor";
@@ -12,21 +10,17 @@ import { AiSuggestedTagsOverlay, type SuggestedTagAssignment } from "@/component
 import type { JSONContent } from "@tiptap/react";
 import type { TagOption } from "@/components/tags/TagPicker";
 
+export type NoteEditorSectionHandle = {
+  summarize: () => Promise<void>;
+};
+
 interface HighlightEntry {
   id: string;
   markId: string | null;
   tagIds: string[];
 }
 
-export function NoteEditorSection({
-  noteId,
-  projectId,
-  initialContent,
-  speakerMaps,
-  allTags,
-  highlights,
-  aiEnabled,
-}: {
+export const NoteEditorSection = forwardRef<NoteEditorSectionHandle, {
   noteId: string;
   projectId: string;
   initialContent: JSONContent;
@@ -34,7 +28,17 @@ export function NoteEditorSection({
   allTags: TagOption[];
   highlights: HighlightEntry[];
   aiEnabled: boolean;
-}) {
+}>(function NoteEditorSection({
+  noteId,
+  projectId,
+  initialContent,
+  speakerMaps,
+  allTags,
+  highlights,
+  // aiEnabled kept for future use (e.g. gating tag suggestions)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  aiEnabled: _aiEnabled,
+}, ref) {
   const [loading, setLoading] = useState(false);
   const [suggestedTagAssignments, setSuggestedTagAssignments] = useState<SuggestedTagAssignment[]>([]);
   const router = useRouter();
@@ -89,6 +93,9 @@ export function NoteEditorSection({
       setLoading(false);
     }
   }
+
+  // Expose summarize to parent via ref
+  useImperativeHandle(ref, () => ({ summarize: handleSummarize }));
 
   function handleAccept(markId: string, tagId: string) {
     const assignment = suggestedTagAssignments.find((a) => a.markId === markId);
@@ -149,15 +156,6 @@ export function NoteEditorSection({
 
   return (
     <>
-      {aiEnabled && (
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" disabled={loading} onClick={handleSummarize}>
-            <Sparkles data-icon="inline-start" />
-            {loading ? "Summarizing…" : "Summarize"}
-          </Button>
-        </div>
-      )}
-
       <div className="grid grid-cols-[1fr_min(700px,100%)_200px] items-start -mx-4 sm:-mx-6 lg:-mx-8">
         <div />
         <div className="px-4 sm:px-6 lg:px-8">
@@ -182,4 +180,4 @@ export function NoteEditorSection({
       </div>
     </>
   );
-}
+});

@@ -116,11 +116,11 @@ export function EditorToolbar({
 
       <Separator />
 
-      {/* Highlight */}
+      {/* Tag */}
       {showHighlightButton && (
         <>
           <ToolbarButton
-            label="Highlight"
+            label="Tag"
             active={false}
             onClick={() => onAddHighlight?.()}
           >

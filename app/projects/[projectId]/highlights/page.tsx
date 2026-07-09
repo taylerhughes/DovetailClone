@@ -64,7 +64,7 @@ export default async function HighlightsPage({
           availableLayouts={["GRID", "LIST", "BOARD", "TABLE"]}
         />
         <Text as="span" size={100} color="subdued" className="shrink-0">
-          {totalHighlights} {totalHighlights === 1 ? "highlight" : "highlights"}
+          {totalHighlights} {totalHighlights === 1 ? "tag" : "tags"}
         </Text>
       </div>
 
@@ -72,8 +72,8 @@ export default async function HighlightsPage({
 
       {highlights.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-          <Text size={100} weight="medium">No highlights yet</Text>
-          <Text size={100} color="subdued">Select text in a note and click Highlight to capture it here.</Text>
+          <Text size={100} weight="medium">No tags yet</Text>
+          <Text size={100} color="subdued">Select text in a note and click Tag to capture it here.</Text>
         </div>
       ) : (
         <>

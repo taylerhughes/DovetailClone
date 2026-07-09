@@ -50,7 +50,7 @@ export function AddToCanvasPanel({
         </DialogHeader>
         <Input
           autoFocus
-          placeholder="Search notes, highlights, insights…"
+          placeholder="Search notes, tags, insights…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

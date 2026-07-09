@@ -1,16 +1,30 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Captions } from "lucide-react";
+import { Captions, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Text } from "@/components/ui/text";
 import { toast } from "sonner";
 import { transcribeAttachment } from "@/actions/transcription";
 
 const POLL_INTERVAL_MS = 2000;
 
 type TranscriptionStatus = "NONE" | "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+
+function useElapsed(active: boolean) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (!active) { setSeconds(0); return; }
+    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [active]);
+  return seconds;
+}
+
+function formatElapsed(s: number) {
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
 
 export function TranscribeButton({
   attachmentId,
@@ -22,34 +36,34 @@ export function TranscribeButton({
   initialError: string | null;
 }) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [status, setStatus] = useState<TranscriptionStatus>(initialStatus);
   const [error, setError] = useState<string | null>(initialError);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isInProgress = status === "PENDING" || status === "PROCESSING";
+  const elapsed = useElapsed(isInProgress);
 
   useEffect(() => {
-    if (status !== "PENDING" && status !== "PROCESSING") return;
+    if (!isInProgress) return;
 
     pollTimer.current = setInterval(async () => {
-      const res = await fetch(
-        `/api/attachments/${attachmentId}/transcription-status`,
-      );
+      const res = await fetch(`/api/attachments/${attachmentId}/transcription-status`);
       if (!res.ok) return;
       const data = await res.json();
       setStatus(data.status);
       setError(data.error ?? null);
       if (data.status === "DONE" || data.status === "FAILED") {
         if (pollTimer.current) clearInterval(pollTimer.current);
-        if (data.status === "DONE") router.refresh();
-        if (data.status === "FAILED") {
-          toast.error(data.error ?? "Transcription failed");
-        }
+        if (data.status === "DONE") startTransition(() => router.refresh());
+        if (data.status === "FAILED") toast.error(data.error ?? "Transcription failed");
       }
     }, POLL_INTERVAL_MS);
 
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current);
     };
-  }, [status, attachmentId, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, attachmentId]);
 
   async function handleClick() {
     setStatus("PENDING");
@@ -62,21 +76,45 @@ export function TranscribeButton({
     }
   }
 
-  if (status === "DONE") {
+  if (status === "DONE") return null;
+
+  if (isInProgress) {
     return (
-      <Text as="span" size={75} color="subdued">Transcribed</Text>
+      <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+        <Loader2 className="size-4 shrink-0 animate-spin text-primary" />
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-medium">
+            {status === "PENDING" ? "Queuing transcription…" : "Transcribing audio…"}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {formatElapsed(elapsed)} elapsed · auto-updates when done
+          </span>
+        </div>
+      </div>
     );
   }
 
-  if (status === "PENDING" || status === "PROCESSING") {
+  if (status === "FAILED") {
     return (
-      <Text as="span" size={75} color="subdued">Transcribing…</Text>
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="size-4 shrink-0 text-destructive" />
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium text-destructive">Transcription failed</span>
+            {error && <span className="text-xs text-muted-foreground">{error}</span>}
+          </div>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleClick}>
+          Retry
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Button variant="ghost" size="icon-xs" aria-label="Transcribe" onClick={handleClick} title={error ?? undefined}>
-      <Captions />
+    <Button variant="outline" size="sm" onClick={handleClick} className="self-start">
+      <Captions data-icon="inline-start" />
+      Transcribe
     </Button>
   );
 }

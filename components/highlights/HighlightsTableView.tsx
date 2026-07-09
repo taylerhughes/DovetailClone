@@ -43,7 +43,7 @@ export function HighlightsTableView({
 
   const columns = [
     columnHelper.accessor("quote", {
-      header: "Highlight",
+      header: "Tag",
       cell: (info) => (
         <Link
           href={`/projects/${projectId}/data/${info.row.original.noteId}`}
@@ -92,7 +92,7 @@ export function HighlightsTableView({
   if (highlights.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-24 text-center">
-        <Text size={100} weight="medium">No highlights match this view</Text>
+        <Text size={100} weight="medium">No tags match this view</Text>
       </div>
     );
   }

@@ -215,7 +215,7 @@ export function TagManager({
       )}
 
       {initialTags.length === 0 ? (
-        <Text size={100} color="subdued">No tags yet. Tags help you find patterns across highlights.</Text>
+        <Text size={100} color="subdued">No tag labels yet. Create labels to categorise tagged text across notes.</Text>
       ) : (
         <div className="flex flex-col divide-y rounded-lg border">
           {topLevelTags.map((tag) => (

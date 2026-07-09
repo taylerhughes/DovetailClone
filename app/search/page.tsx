@@ -26,7 +26,7 @@ export default async function SearchPage({
         <Input
           name="q"
           defaultValue={query}
-          placeholder="Search notes, highlights, and insights across all projects…"
+          placeholder="Search notes, tags, and insights across all projects…"
           className="pl-9"
           autoFocus
         />
@@ -53,7 +53,7 @@ export default async function SearchPage({
           )}
 
           {results.highlights.length > 0 && (
-            <ResultSection title="Highlights">
+            <ResultSection title="Tags">
               {results.highlights.map((h) => (
                 <ResultRow
                   key={h.id}

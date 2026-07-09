@@ -26,7 +26,7 @@ export default async function ThemesPage({
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <Text size={100} color="subdued">AI-generated groupings of this project&apos;s highlights, distinct from tags.</Text>
+        <Text size={100} color="subdued">AI-generated groupings of this project&apos;s tags into synthesized themes.</Text>
         {isAiEnabled() && (
           <RegenerateThemesButton
             projectId={projectId}

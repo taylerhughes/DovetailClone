@@ -1,0 +1,138 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design System/Typography" />
+
+# Typography
+
+A token-driven type system built on Adobe Spectrum's principle: **decouple semantic level from visual size**.
+
+---
+
+## Core principle
+
+A heading's HTML element (`h1`–`h6`) defines the document outline — it tells screen readers and search engines about structure. The visual size of that heading is a separate decision. These two things should not be coupled.
+
+In practice: an `h2` that visually needs to be small (e.g., a card section title) should be rendered as a real `h2` for semantics, styled at `size={200}` for appearance. You don't demote it to a `<p>` to make it smaller, and you don't add a fake `h1` just to get a large visual treatment.
+
+```tsx
+// ✓ Semantic h2, visually small — correct
+<Heading level={2} size={200}>Card section</Heading>
+
+// ✗ Visual hack — loses document structure
+<p className="text-xl font-bold">Card section</p>
+```
+
+---
+
+## Type scale
+
+15 steps using the same 1.125× ratio as Adobe Spectrum. Desktop values are the default; the mobile values activate automatically via a CSS media query at `max-width: 767px` — no component code changes for responsive behavior.
+
+| Step | Desktop | Mobile | Typical use |
+|------|---------|--------|-------------|
+| 50   | 11px | 13px | Timestamps, fine print |
+| 75   | 12px | 15px | Captions, metadata labels |
+| 100  | 14px | 17px | Body copy (base size) |
+| 200  | 16px | 19px | Body copy (comfortable) |
+| 300  | 18px | 22px | Lead text, intro paragraphs |
+| 400  | 20px | 24px | Section headings (h4–h5) |
+| 500  | 22px | 27px | Mid-range headings |
+| 600  | 25px | 31px | Page section headings (h3) |
+| 700  | 28px | 34px | Page section headings (h2) |
+| 800  | 32px | 39px | Major headings (h2) |
+| 900  | 36px | 44px | Page-level headings |
+| 1000 | 40px | 49px | Primary page heading (h1) |
+| 1100 | 45px | 55px | Hero headings |
+| 1200 | 50px | 62px | Large display |
+| 1300 | 60px | 70px | Extra-large display |
+
+---
+
+## Responsive behavior
+
+The same CSS custom property name changes value at the breakpoint:
+
+```css
+/* Desktop (default) */
+--text-fs-100: 0.875rem; /* 14px */
+
+/* Mobile (<768px) — same variable name, different value */
+--text-fs-100: 1.0625rem; /* 17px */
+```
+
+Components reference `text-fs-100` (the class) unchanged. The token value flips at the viewport breakpoint. No conditional rendering, no responsive prop variants.
+
+---
+
+## Text vs. Heading — which to use
+
+**Use `Heading`** when the element contributes to the document's semantic outline. If a screen reader should announce it as a section heading, use `Heading` with the correct level.
+
+**Use `Text`** for everything else: body copy, labels, annotations, metadata, UI strings, inline content. If you want something visually large but it's not a structural heading, use `Text` with a large `size` — not `Heading`.
+
+Decision test: *if you removed this element, would the page's outline (h1 → h2 → h3 structure) be broken?* Yes → `Heading`. No → `Text`.
+
+---
+
+## Default level → size mapping
+
+When `size` is omitted from `Heading`, it resolves from `LEVEL_DEFAULT_SIZE`:
+
+| Level | Default size | Desktop value |
+|-------|-------------|---------------|
+| h1 | 1000 | 40px |
+| h2 | 800  | 32px |
+| h3 | 600  | 25px |
+| h4 | 400  | 20px |
+| h5 | 300  | 18px |
+| h6 | 200  | 16px |
+
+Override with `size` when visual hierarchy diverges from semantic hierarchy:
+
+```tsx
+// A card header: semantically h3, but visually small
+<Heading level={3} size={100}>Activity</Heading>
+```
+
+---
+
+## Font family
+
+Both `Text` and `Heading` use **Satoshi** by default (`family="satoshi"`). Satoshi is loaded from Fontshare CDN at 400/500/700 weights and is the sole design font throughout the system.
+
+A `family="sans"` variant is available on `Text` for situations requiring the system UI font (Geist Sans in the app). Note: inside Storybook, `family="sans"` will fall back to the system sans-serif — Geist is injected by Next.js at app runtime and is not available in the Storybook preview.
+
+---
+
+## Token reference
+
+These CSS custom properties are the source of truth. Reference them in custom components or tooling:
+
+```css
+/* Font families */
+--font-type-body:    "Satoshi", sans-serif
+--font-type-heading: "Satoshi", sans-serif
+
+/* Type scale (desktop values — override in @media max-width:767px for mobile) */
+--text-fs-50:   0.6875rem   /* 11px */
+--text-fs-75:   0.75rem     /* 12px */
+--text-fs-100:  0.875rem    /* 14px */
+--text-fs-200:  1rem        /* 16px */
+--text-fs-300:  1.125rem    /* 18px */
+--text-fs-400:  1.25rem     /* 20px */
+--text-fs-500:  1.375rem    /* 22px */
+--text-fs-600:  1.5625rem   /* 25px */
+--text-fs-700:  1.75rem     /* 28px */
+--text-fs-800:  2rem        /* 32px */
+--text-fs-900:  2.25rem     /* 36px */
+--text-fs-1000: 2.5rem      /* 40px */
+--text-fs-1100: 2.8125rem   /* 45px */
+--text-fs-1200: 3.125rem    /* 50px */
+--text-fs-1300: 3.75rem     /* 60px */
+
+/* Line heights */
+--leading-type-tight:   1.2
+--leading-type-snug:    1.35
+--leading-type-normal:  1.5
+--leading-type-relaxed: 1.625
+```

@@ -5,11 +5,11 @@ import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from "@tiptap/re
 import { formatTimestamp } from "@/lib/editor/timestamp";
 import { seekMediaElement, subscribeToMediaTime } from "@/lib/editor/mediaRegistry";
 import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
-import { TranscriptSpeaker } from "@/components/transcription/TranscriptSegment";
+import { InlineSpeakerPicker } from "@/components/editor/InlineSpeakerPicker";
 import type { WordData } from "@/lib/transcription/types";
 
 export function TranscriptSegmentView({ node }: NodeViewProps) {
-  const speakerMaps = useContext(SpeakerMapContext);
+  const { speakerMaps } = useContext(SpeakerMapContext);
   const speaker = node.attrs.speaker as string | null;
   const startSec = node.attrs.startSec as number | null;
   const endSec = node.attrs.endSec as number | null;
@@ -46,12 +46,6 @@ export function TranscriptSegmentView({ node }: NodeViewProps) {
     : undefined;
 
   const displayName = teamMemberName ?? speaker ?? "";
-  const initials = displayName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
 
   // Only show word-level overlay while video is playing (currentTime !== null).
   // When not playing, render normal NodeViewContent so ProseMirror selection works.
@@ -65,10 +59,15 @@ export function TranscriptSegmentView({ node }: NodeViewProps) {
       {/* inner div used for scrollIntoView — NodeViewWrapper doesn't forward refs */}
       <div ref={wrapperRef} />
       <div contentEditable={false} className="inline-flex items-center gap-2">
-        <TranscriptSpeaker
-          speakerName={displayName}
-          speakerInitials={initials || undefined}
-        />
+        {attachmentId && speaker ? (
+          <InlineSpeakerPicker
+            attachmentId={attachmentId}
+            speakerLabel={speaker}
+            displayName={displayName}
+          />
+        ) : (
+          <span className="text-sm font-bold">{displayName}</span>
+        )}
         {startSec !== null && attachmentId && (
           <button
             type="button"

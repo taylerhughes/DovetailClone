@@ -41,6 +41,42 @@ function buildCitationNode(number: number, markId: string | null): JSONContent {
   return { type: "citation", attrs: { number, markId } };
 }
 
+function insertChapterMarkers(
+  nodes: JSONContent[],
+  chapters: { title: string; startSec: number }[],
+): JSONContent[] {
+  if (!chapters.length) return nodes;
+
+  // Sort chapters ascending by startSec
+  const sorted = [...chapters].sort((a, b) => a.startSec - b.startSec);
+
+  const result: JSONContent[] = [];
+  let chapterIdx = 0;
+
+  for (const node of nodes) {
+    // Inject any chapters whose startSec falls before (or at) this segment's startSec
+    if (node.type === "transcriptSegment") {
+      const segStart = typeof node.attrs?.startSec === "number" ? node.attrs.startSec : null;
+      const attachmentId = node.attrs?.attachmentId as string | null;
+
+      while (chapterIdx < sorted.length && segStart !== null && sorted[chapterIdx].startSec <= segStart) {
+        result.push({
+          type: "chapterMarker",
+          attrs: {
+            title: sorted[chapterIdx].title,
+            startSec: sorted[chapterIdx].startSec,
+            attachmentId: attachmentId ?? null,
+          },
+        });
+        chapterIdx++;
+      }
+    }
+    result.push(node);
+  }
+
+  return result;
+}
+
 function buildSummaryBlock(
   paragraphs: { text: string; citedHighlightIndices: number[] }[],
   highlightMarkIds: (string | null)[],
@@ -201,9 +237,10 @@ export async function POST(request: NextRequest) {
 
         console.log("[summarize] createdHighlightMarkIds.length=", createdHighlightMarkIds.length, "building summary block");
         const summaryBlock = buildSummaryBlock(aiResult.paragraphs, createdHighlightMarkIds);
+        const transcriptWithChapters = insertChapterMarkers(existingChildren, aiResult.chapters ?? []);
         const newContent: JSONContent = {
           type: "doc",
-          content: [...summaryBlock, ...existingChildren],
+          content: [...summaryBlock, ...transcriptWithChapters],
         };
 
         console.log("[summarize] updating note in DB");

@@ -25,8 +25,9 @@ model User {
   projects      Project[]
   projectShares ProjectShare[]
 
-  members     Member[]
-  invitations Invitation[]
+  members      Member[]
+  invitations  Invitation[]
+  integrations Integration[]
 
   @@unique([email])
   @@map("user")
@@ -122,6 +123,7 @@ model Project {
   highlightReels  HighlightReel[]
   themes          Theme[]
   embeddingChunks EmbeddingChunk[]
+  integrations    Integration[]
 
   @@index([userId])
   @@index([organizationId])
@@ -149,6 +151,8 @@ model Note {
   plainText    String                   @default("")
   /// generated column populated by migration SQL, not written to directly
   searchVector Unsupported("tsvector")?
+  shareLinkEnabled Boolean  @default(false)
+  shareLinkToken   String?  @unique
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
 
@@ -640,4 +644,35 @@ model RateLimitBucket {
   key         String   @id
   windowStart DateTime
   count       Int      @default(0)
+}
+
+model Integration {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider  String
+  name      String
+  secret    String   @unique
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events IntegrationEvent[]
+
+  @@index([userId])
+  @@index([projectId])
+}
+
+model IntegrationEvent {
+  id            String      @id @default(cuid())
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  status        String
+  noteId        String?
+  error         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([integrationId])
 }

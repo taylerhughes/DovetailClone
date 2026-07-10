@@ -1,0 +1,163 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design System/Overview" />
+
+# Design System
+
+A token-driven, Figma↔code design system built for machine-readability from day one.
+
+---
+
+## Principles
+
+1. **Tokens are the only source of raw values.** No hex codes, no magic pixel numbers, anywhere — in Figma or in code.
+2. **Everything is tiered by composition, not by biology.** No atoms/molecules/organisms language. Every layer has one job and a name that tells you what that job is.
+3. **Figma and code describe the *same* components, not two libraries that resemble each other.** Parity is a process (naming, IDs, Code Connect, CI), not a one-time sync.
+4. **The system is written for two readers: humans and LLMs.** Human-facing docs are prose/Markdown. Machine-facing docs are structured JSON. These are two exports of one source of truth, not two separate efforts.
+5. **Nothing ships without an owner, a version, and a status.** Ad hoc contribution is fine early; it must convert to governed contribution as the system grows.
+
+---
+
+## Component hierarchy
+
+Atomic design's atoms/molecules/organisms breaks down in practice because the boundaries are subjective and the names carry no information about ownership, stability, or how to use them. We use a **tiered, composition-based model** instead:
+
+| Tier | What it is | Where it lives | Example |
+|---|---|---|---|
+| **1. Foundations** | Design tokens: color, type, space, radius, motion, elevation. Not renderable on their own. | Figma Variables → JSON (DTCG) → Style Dictionary → CSS/TS | `color.text.subdued`, `space.400`, `type.body.md` |
+| **2. Primitives** | The smallest *rendered* things, built directly from tokens, with no product logic. | Figma components + code (`components/ui/`) | Button, Input, Avatar, Icon, Text, Badge |
+| **3. Composites** | Two or more primitives combined into one reusable, still-generic unit. | Figma nested instances + code (`components/<domain>/`) | TranscriptSegment, UserDisplay, FormField |
+| **4. Patterns** | Composites and primitives arranged to solve a recurring product problem. Opinionated but reusable. | Figma component sets + code | CommentThread, SettingsRow, DataTableToolbar |
+| **5. Templates/Screens** | Real page layouts and flows. Product-owned, not design-system-owned. | Figma pages, product repos | Settings page, Onboarding flow |
+
+**Naming rule of thumb:** if you can build it from foundations plus other things in this table, it belongs here — not in some template. Every component declares which tier it's in via its folder: `components/ui/` for primitives, `components/<domain>/` for composites and patterns.
+
+**Boundary test for Primitive vs Composite:** does it hold more than one primitive, and does removing one of them change what it fundamentally is? Avatar alone is a primitive. Avatar + Name is a composite — remove the name and it's no longer "a way of displaying a user," it's just an avatar.
+
+---
+
+## Token architecture
+
+We use the **W3C Design Tokens Community Group (DTCG) format** as the interchange format between Figma and code.
+
+**Three token layers** (the part teams most often skip and regret):
+
+- **Primitive tokens** — raw values, private to the token layer. `blue.500`, `space.4`. Nobody references these directly in a component.
+- **Semantic tokens** — intent-based names that alias primitives. `color.surface.brand`, `color.text.subdued`, `space.inset.md`. Components reference *only* these. Semantic names must stay meaningful across every mode — `text/gray` is wrong because it stops making sense in dark theme; `text/subdued` is correct because it describes intent, not a hue.
+- **Component tokens** — scoped to one component when a semantic token isn't specific enough. `button.primary.background.hover`. Add only when needed.
+
+**Token pipeline:**
+
+```
+Figma Variables  →  (Tokens Studio or native Variables REST API export)
+      ↓
+tokens.json (DTCG format, in Git)
+      ↓
+CI: schema validation + lint (no orphan tokens, no missing $type)
+      ↓
+Style Dictionary  →  CSS custom properties / TS constants
+      ↓
+Storybook preview + visual regression (Chromatic)
+      ↓
+Publish versioned @willard/tokens package → consumed by component repos
+```
+
+---
+
+## Figma ↔ code parity
+
+Be honest about what's solved and what isn't:
+
+- **Token parity is solved.** Figma Variables → DTCG JSON → Style Dictionary is reliable and should be fully automated.
+- **Component structure parity is not fully solved by any tool.** Figma Code Connect maps components to code snippets in Dev Mode, but it requires manual maintenance and does not sync component structure. Plan for a human-maintained mapping layer, not a fire-and-forget sync.
+
+**The process that gets the most reliable parity:**
+
+1. **Naming contract first.** Agree the exact strings for component names, variant/prop names, and value enums before building anything. Use identical casing in both worlds: Figma variant `Primary` ↔ code `variant="primary"`. When Figma variants, code props, and Storybook controls all use the same language, the question "what did the developer call this?" disappears.
+2. **Figma Code Connect** for every primitive and composite — makes Dev Mode show real production code instead of Figma's auto-generated guess.
+3. **Storybook as the canonical component catalog**, with the Figma embed wired in both directions.
+4. **CSF 3.0 stories generated from typed props**, one story per variant plus edge cases (long text, all-variants grid, disabled/loading states).
+5. **Structural drift review is a recurring task, not a one-off project.** Assign an owner to periodically diff Figma component sets against code component APIs. Treat it like dependency updates.
+
+---
+
+## Making the system LLM-accessible
+
+**Two formats, two jobs:**
+
+- **Component metadata (props, variants, token bindings, a11y attributes, usage examples) → JSON**, one file per component, generated from source — never hand-written, or it drifts immediately.
+- **Rules, principles, "when to use X vs Y" → Markdown**, served as always-on context.
+
+JSON delivers the same or better accuracy than Markdown+JSON at roughly 80% fewer tokens for structured queries. Use JSON for contracts, Markdown for guidance.
+
+**Three-layer context architecture:**
+
+1. **Always-on rules** — foundations (token scale, do's/don'ts, brand voice) injected into every agent session.
+2. **MCP, on-demand** — the agent queries a design-system MCP server when it needs a specific component's API, variants, or usage pattern.
+3. **`AGENTS.md` / `CLAUDE.md` at the repo root** — states what's always-on, where the MCP server lives, and what an agent is and isn't allowed to change unattended.
+
+**Component JSON manifest shape:**
+
+```json
+{
+  "component": "TranscriptSegment",
+  "tier": "composite",
+  "status": "stable",
+  "version": "1.0.0",
+  "composedOf": ["Avatar", "Text"],
+  "props": {
+    "speakerName": { "type": "string", "required": true },
+    "speakerInitials": { "type": "string", "required": false },
+    "text": { "type": "string", "required": true },
+    "highlights": {
+      "type": "array",
+      "items": {
+        "start": "number",
+        "end": "number",
+        "color": { "type": "enum", "values": ["blue", "zinc"] }
+      },
+      "required": false
+    }
+  },
+  "tokens": ["color.text.default", "color.text.subdued", "type.body.sm"],
+  "accessibility": {
+    "role": "none",
+    "notes": "Avatar is decorative. Speaker name and text are readable in DOM order."
+  },
+  "figmaNodeId": null,
+  "codeConnect": false,
+  "usageExamples": ["transcript viewer", "interview playback"]
+}
+```
+
+---
+
+## Governance
+
+- **Component statuses:** `experimental` → `stable` → `deprecated`, visible in both Figma and the JSON manifest.
+- **Versioning:** semver at the component level once you have more than a handful of consuming teams. Define breaking beyond API surface — visual breakage, behavioral breakage, operational breakage, and documentation breakage should all be treated with the seriousness of a breaking API change.
+- **Contribution:** lightweight RFC for new patterns/composites, direct PR for bug fixes, standing review slot (weekly or biweekly) rather than ad hoc sign-off.
+
+---
+
+## Tooling stack
+
+| Need | Tool |
+|---|---|
+| Token source | Figma Variables (+ Tokens Studio for Git-native token branching) |
+| Token build | Style Dictionary 4 (DTCG-native) |
+| Design↔code mapping | Figma Code Connect |
+| Component catalog | Storybook (CSF 3.0) + Chromatic for visual regression |
+| Figma↔Storybook embed | `@storybook/addon-designs` |
+| Agent/LLM access | Custom MCP server serving JSON manifests |
+
+---
+
+## Rollout order
+
+1. **Foundations first** — token pipeline (Figma Variables → DTCG JSON → Style Dictionary → CI) before a single component.
+2. **Primitives** — Button, Input, Text, Avatar, Icon, Badge — built in code and Figma in lockstep, Code Connect on each.
+3. **Composites** — build 2–3 real ones end-to-end including JSON manifest and Storybook stories, to prove the whole pipeline before scaling out.
+4. **Machine-readability layer** — MCP server + JSON manifest generation once there are enough primitives + composites that an agent would benefit from querying them.
+5. **Governance** — status labels and versioning once a second team starts consuming the system.
+6. **Patterns and templates** — product teams own these, core team reviews for consistency.

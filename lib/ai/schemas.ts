@@ -13,6 +13,12 @@ export const summarizeWithHighlightsResultSchema = z.object({
       suggestedTagNames: z.array(z.string()).default([]),
     }),
   ).default([]),
+  chapters: z.array(
+    z.object({
+      title: z.string(),
+      startSec: z.number(),
+    }),
+  ).default([]),
 });
 export type SummarizeWithHighlightsResult = z.infer<typeof summarizeWithHighlightsResultSchema>;
 

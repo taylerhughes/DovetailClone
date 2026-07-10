@@ -25,6 +25,8 @@ export const NoteEditorSection = forwardRef<NoteEditorSectionHandle, {
   projectId: string;
   initialContent: JSONContent;
   speakerMaps?: Map<string, Map<string, string>>;
+  rawSpeakerMaps?: Map<string, Record<string, string>>;
+  teamMembers?: { id: string; name: string }[];
   allTags: TagOption[];
   highlights: HighlightEntry[];
   aiEnabled: boolean;
@@ -33,6 +35,8 @@ export const NoteEditorSection = forwardRef<NoteEditorSectionHandle, {
   projectId,
   initialContent,
   speakerMaps,
+  rawSpeakerMaps,
+  teamMembers,
   allTags,
   highlights,
   // aiEnabled kept for future use (e.g. gating tag suggestions)
@@ -164,6 +168,8 @@ export const NoteEditorSection = forwardRef<NoteEditorSectionHandle, {
             projectId={projectId}
             initialContent={initialContent}
             speakerMaps={speakerMaps}
+            rawSpeakerMaps={rawSpeakerMaps}
+            teamMembers={teamMembers}
             allTags={allTags}
             highlights={mergedHighlights}
             editorRef={editorRef}

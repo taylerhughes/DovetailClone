@@ -9,6 +9,10 @@ export const auth = betterAuth({
   database: prismaAdapter(db, { provider: "postgresql" }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+    "https://www.app.willard.design",
+  ],
   emailAndPassword: {
     enabled: true,
     // Kept non-blocking for now (sign-in still works before verifying) to

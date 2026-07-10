@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
-import { useUpload } from "@/lib/uploads/useUpload";
+import { useUpload, type UploadedAttachment } from "@/lib/uploads/useUpload";
 import { cn } from "@/lib/utils";
 
-export function DropZone({ noteId }: { noteId: string }) {
+export function DropZone({
+  noteId,
+  onUploaded,
+}: {
+  noteId: string;
+  onUploaded?: (attachments: UploadedAttachment[]) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const router = useRouter();
@@ -23,7 +29,8 @@ export function DropZone({ noteId }: { noteId: string }) {
     const arr = Array.from(files);
     if (arr.length === 0) return;
     try {
-      await upload(arr);
+      const uploaded = await upload(arr);
+      onUploaded?.(uploaded);
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
-import { TopNav } from "@/components/layout/TopNav";
-import { SearchShortcut } from "@/components/layout/SearchShortcut";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -28,7 +26,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <head>
         <link
@@ -36,10 +34,8 @@ export default function RootLayout({
           href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap"
         />
       </head>
-      <body className="min-h-full flex flex-col">
-        <SearchShortcut />
-        <TopNav />
-        <div className="flex flex-1 flex-col">{children}</div>
+      <body className="flex min-h-screen flex-col">
+        {children}
         <Toaster />
       </body>
     </html>

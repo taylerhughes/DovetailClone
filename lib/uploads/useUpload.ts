@@ -7,6 +7,11 @@ export type UploadProgress = {
   percent: number;
 };
 
+export type UploadedAttachment = {
+  id: string;
+  kind: "VIDEO" | "AUDIO" | "IMAGE" | "FILE";
+};
+
 function xhrPut(url: string, file: File, onProgress: (pct: number) => void): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -28,7 +33,7 @@ async function uploadViaPresign(
   noteId: string,
   file: File,
   onProgress: (pct: number) => void,
-): Promise<void> {
+): Promise<UploadedAttachment> {
   let presignRes: Response;
   try {
     presignRes = await fetch("/api/uploads/presign", {
@@ -85,13 +90,16 @@ async function uploadViaPresign(
     } catch { /* not JSON */ }
     throw new Error(message);
   }
+
+  const { attachment } = await confirmRes.json();
+  return { id: attachment.id, kind: attachment.kind };
 }
 
 async function uploadDirect(
   noteId: string,
   file: File,
   onProgress: (pct: number) => void,
-): Promise<void> {
+): Promise<UploadedAttachment> {
   return new Promise((resolve, reject) => {
     const formData = new FormData();
     formData.append("noteId", noteId);
@@ -104,7 +112,12 @@ async function uploadDirect(
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
+        try {
+          const body = JSON.parse(xhr.responseText);
+          resolve({ id: body.attachment.id, kind: body.attachment.kind });
+        } catch {
+          reject(new Error("Upload succeeded but response was unreadable"));
+        }
       } else {
         let message = `Upload failed (${xhr.status})`;
         try {
@@ -122,27 +135,24 @@ async function uploadDirect(
 export function useUpload(noteId: string) {
   const [progress, setProgress] = useState<UploadProgress | null>(null);
 
-  const upload = useCallback(async (files: File[]): Promise<void> => {
-    if (files.length === 0) return;
+  const upload = useCallback(async (files: File[]): Promise<UploadedAttachment[]> => {
+    if (files.length === 0) return [];
 
     const usePresign = await fetch("/api/uploads/presign", { method: "HEAD" })
       .then((r) => r.status !== 404)
       .catch(() => false);
 
+    const results: UploadedAttachment[] = [];
     for (const file of files) {
       setProgress({ fileName: file.name, percent: 0 });
-      if (usePresign) {
-        await uploadViaPresign(noteId, file, (pct) =>
-          setProgress({ fileName: file.name, percent: pct }),
-        );
-      } else {
-        await uploadDirect(noteId, file, (pct) =>
-          setProgress({ fileName: file.name, percent: pct }),
-        );
-      }
+      const result = usePresign
+        ? await uploadViaPresign(noteId, file, (pct) => setProgress({ fileName: file.name, percent: pct }))
+        : await uploadDirect(noteId, file, (pct) => setProgress({ fileName: file.name, percent: pct }));
+      results.push(result);
     }
 
     setProgress(null);
+    return results;
   }, [noteId]);
 
   return { progress, upload };

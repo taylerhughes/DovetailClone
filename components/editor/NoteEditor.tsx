@@ -14,6 +14,7 @@ import { createHighlight } from "@/actions/highlights";
 import { HighlightMark } from "@/components/editor/extensions/highlightMark";
 import { TranscriptSegment } from "@/components/editor/extensions/transcriptSegment";
 import { CitationNode } from "@/components/editor/extensions/citationMark";
+import { ChapterMarker } from "@/components/editor/extensions/chapterMarker";
 import { SpeakerMapContext } from "@/components/editor/SpeakerMapContext";
 import { findTranscriptClipRange } from "@/lib/editor/transcriptRange";
 import { EditorToolbar } from "@/components/editor/EditorToolbar";
@@ -32,6 +33,8 @@ export function NoteEditor({
   projectId,
   initialContent,
   speakerMaps,
+  rawSpeakerMaps,
+  teamMembers,
   allTags,
   highlights,
   editorRef,
@@ -40,6 +43,8 @@ export function NoteEditor({
   projectId: string;
   initialContent: JSONContent;
   speakerMaps?: Map<string, Map<string, string>>;
+  rawSpeakerMaps?: Map<string, Record<string, string>>;
+  teamMembers?: { id: string; name: string }[];
   allTags: TagOption[];
   highlights: { id: string; markId: string | null; tagIds: string[]; provisionalTagIds?: string[] }[];
   editorRef?: Ref<NoteEditorHandle>;
@@ -79,6 +84,7 @@ export function NoteEditor({
       HighlightMark,
       TranscriptSegment,
       CitationNode,
+      ChapterMarker,
     ],
     content: initialContent,
     editorProps: {
@@ -193,12 +199,19 @@ export function NoteEditor({
   if (!editor) return null;
 
   return (
-    <SpeakerMapContext.Provider value={speakerMaps ?? new Map()}>
+    <SpeakerMapContext.Provider value={{
+      speakerMaps: speakerMaps ?? new Map(),
+      rawSpeakerMaps: rawSpeakerMaps ?? new Map(),
+      teamMembers: teamMembers ?? [],
+    }}>
       <div className="flex flex-col gap-2">
         {canEdit && (
-          <div className="flex items-center justify-between">
+          <div
+            className="sticky z-10 flex items-center justify-between gap-2 bg-background pb-2 pt-2"
+            style={{ top: "calc(3.5rem + var(--note-title-height, 48px))" }}
+          >
             <EditorToolbar editor={editor} showHighlightButton={false} />
-            <Text as="span" size={75} color="subdued">
+            <Text as="span" size={75} color="subdued" className="shrink-0">
               {status === "saving" ? "Saving…" : status === "saved" ? "Saved" : ""}
             </Text>
           </div>

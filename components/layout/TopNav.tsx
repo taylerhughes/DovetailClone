@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Sparkles } from "lucide-react";
+import { Plug, Search, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser, getActiveOrganizationId } from "@/lib/auth/session";
 import { isAiEnabled } from "@/lib/ai/client";
@@ -7,6 +7,7 @@ import { isEmbeddingsEnabled } from "@/lib/embeddings/client";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { OrgSwitcher } from "@/components/organizations/OrgSwitcher";
 import { Text } from "@/components/ui/text";
+import { WillardLogo } from "@/components/ui/willard-logo";
 
 export async function TopNav() {
   const user = await getCurrentUser();
@@ -20,9 +21,9 @@ export async function TopNav() {
   const activeOrganizationId = user ? await getActiveOrganizationId() : null;
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b px-6">
-      <Link href="/">
-        <Text as="span" size={100} weight="bold">Willard</Text>
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between border-b bg-background px-6">
+      <Link href="/" aria-label="Willard home">
+        <WillardLogo className="size-6 text-foreground" />
       </Link>
       <div className="flex items-center gap-4">
         <Link href="/search" className="flex items-center gap-2 hover:text-foreground">
@@ -34,6 +35,12 @@ export async function TopNav() {
           <Link href="/ask" className="flex items-center gap-2 hover:text-foreground">
             <Sparkles className="size-4 text-muted-foreground" />
             <Text as="span" size={100} color="subdued">Ask AI</Text>
+          </Link>
+        )}
+        {user && (
+          <Link href="/integrations" className="flex items-center gap-2 hover:text-foreground">
+            <Plug className="size-4 text-muted-foreground" />
+            <Text as="span" size={100} color="subdued">Integrations</Text>
           </Link>
         )}
         {user ? (

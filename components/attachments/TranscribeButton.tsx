@@ -30,10 +30,14 @@ export function TranscribeButton({
   attachmentId,
   initialStatus,
   initialError,
+  autoStart = false,
+  onDone,
 }: {
   attachmentId: string;
   initialStatus: TranscriptionStatus;
   initialError: string | null;
+  autoStart?: boolean;
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -42,6 +46,14 @@ export function TranscribeButton({
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const isInProgress = status === "PENDING" || status === "PROCESSING";
   const elapsed = useElapsed(isInProgress);
+
+  // Auto-start transcription when the attachment is freshly uploaded
+  useEffect(() => {
+    if (autoStart && status === "NONE") {
+      void handleClick();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!isInProgress) return;
@@ -54,7 +66,10 @@ export function TranscribeButton({
       setError(data.error ?? null);
       if (data.status === "DONE" || data.status === "FAILED") {
         if (pollTimer.current) clearInterval(pollTimer.current);
-        if (data.status === "DONE") startTransition(() => router.refresh());
+        if (data.status === "DONE") {
+          startTransition(() => router.refresh());
+          onDone?.();
+        }
         if (data.status === "FAILED") toast.error(data.error ?? "Transcription failed");
       }
     }, POLL_INTERVAL_MS);

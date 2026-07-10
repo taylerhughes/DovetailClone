@@ -11,6 +11,7 @@ import { summarizeWithHighlightsResultSchema, draftInsightResultSchema } from ".
 export interface SummarizeNoteResult {
   paragraphs: { text: string; citedHighlightIndices: number[] }[];
   highlights: { quote: string; suggestedTagNames: string[] }[];
+  chapters: { title: string; startSec: number }[];
 }
 
 const SUMMARIZE_TOOL = {
@@ -51,8 +52,20 @@ const SUMMARIZE_TOOL = {
           required: ["text", "citedHighlightIndices"],
         },
       },
+      chapters: {
+        type: "array",
+        description: "Chapters marking distinct topic sections of the transcript. Only include if the transcript has clear topic shifts. Each chapter marks the start of a new section.",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Short chapter name (3-6 words) describing what is discussed in this section." },
+            startSec: { type: "number", description: "The startSec timestamp (in seconds) of the first transcript segment where this chapter begins." },
+          },
+          required: ["title", "startSec"],
+        },
+      },
     },
-    required: ["highlights", "paragraphs"],
+    required: ["highlights", "paragraphs", "chapters"],
   },
 };
 

@@ -6,9 +6,15 @@ import { Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useProjectAccess } from "@/components/projects/ProjectAccessContext";
-import { useUpload } from "@/lib/uploads/useUpload";
+import { useUpload, type UploadedAttachment } from "@/lib/uploads/useUpload";
 
-export function Uploader({ noteId }: { noteId: string }) {
+export function Uploader({
+  noteId,
+  onUploaded,
+}: {
+  noteId: string;
+  onUploaded?: (attachments: UploadedAttachment[]) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -20,7 +26,8 @@ export function Uploader({ noteId }: { noteId: string }) {
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
     try {
-      await upload(Array.from(files));
+      const uploaded = await upload(Array.from(files));
+      onUploaded?.(uploaded);
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
